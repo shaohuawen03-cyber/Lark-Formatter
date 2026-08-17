@@ -1,10 +1,10 @@
 {
   "version": "1.0",
   "name": "默认格式",
-  "description": "默认排版方案",
+  "description": "鲁东大学学术学位研究生学位论文排版规范（模式一：多层次阿拉伯数字连续编号）",
   "format_signature": "",
   "category": "thesis",
-  "category_label": "学位论文",
+  "category_label": "学术学位论文",
   "capabilities": {
     "heading_numbering": true,
     "section_detection": true,
@@ -31,49 +31,49 @@
   "page_setup": {
     "paper_size": "A4",
     "margin": {
-      "top_cm": 3.8,
-      "bottom_cm": 3.8,
-      "left_cm": 3.2,
-      "right_cm": 3.2
+      "top_cm": 3.0,
+      "bottom_cm": 2.5,
+      "left_cm": 3.0,
+      "right_cm": 3.0
     },
     "gutter_cm": 0.0,
-    "header_distance_cm": 3.0,
-    "footer_distance_cm": 3.0
+    "header_distance_cm": 2.0,
+    "footer_distance_cm": 2.2
   },
   "heading_numbering": {
     "mode": "B",
-    "scheme": "2",
+    "scheme": "1",
     "levels": {
       "heading1": {
-        "format": "chinese_chapter",
+        "format": "arabic",
         "template": "第{current}章",
         "separator": "　",
         "custom_separator": null,
-        "alignment": "",
+        "alignment": "center",
         "left_indent_chars": 0
       },
       "heading2": {
-        "format": "chinese_section",
-        "template": "第{current}节",
+        "format": "arabic_dotted",
+        "template": "{level1}.{current}",
         "separator": "　",
         "custom_separator": null,
-        "alignment": "",
+        "alignment": "left",
         "left_indent_chars": 0
       },
       "heading3": {
-        "format": "chinese_ordinal",
-        "template": "{current}、",
+        "format": "arabic_dotted",
+        "template": "{level1}.{level2}.{current}",
         "separator": "　",
         "custom_separator": null,
-        "alignment": "",
+        "alignment": "left",
         "left_indent_chars": 0
       },
       "heading4": {
-        "format": "chinese_ordinal_paren",
-        "template": "（{current}）",
+        "format": "arabic_dotted",
+        "template": "{level1}.{level2}.{level3}.{current}",
         "separator": "　",
         "custom_separator": null,
-        "alignment": "",
+        "alignment": "left",
         "left_indent_chars": 0
       }
     },
@@ -81,10 +81,10 @@
       "1": {
         "heading1": {
           "format": "arabic",
-          "template": "{current}",
+          "template": "第{current}章",
           "separator": "　",
           "custom_separator": null,
-          "alignment": "left",
+          "alignment": "center",
           "left_indent_chars": 0
         },
         "heading2": {
@@ -255,7 +255,7 @@
         "segments": [
           {
             "type": "value",
-            "source": "heading2",
+            "source": "level1",
             "text": ""
           },
           {
@@ -275,7 +275,7 @@
         "segments": [
           {
             "type": "value",
-            "source": "heading2",
+            "source": "level1",
             "text": ""
           },
           {
@@ -285,7 +285,7 @@
           },
           {
             "type": "value",
-            "source": "heading3",
+            "source": "level2",
             "text": ""
           },
           {
@@ -305,7 +305,7 @@
         "segments": [
           {
             "type": "value",
-            "source": "heading2",
+            "source": "level1",
             "text": ""
           },
           {
@@ -315,7 +315,7 @@
           },
           {
             "type": "value",
-            "source": "heading3",
+            "source": "level2",
             "text": ""
           },
           {
@@ -325,7 +325,7 @@
           },
           {
             "type": "value",
-            "source": "heading4",
+            "source": "level3",
             "text": ""
           },
           {
@@ -345,7 +345,7 @@
         "segments": [
           {
             "type": "value",
-            "source": "heading2",
+            "source": "level1",
             "text": ""
           },
           {
@@ -355,7 +355,7 @@
           },
           {
             "type": "value",
-            "source": "heading3",
+            "source": "level2",
             "text": ""
           },
           {
@@ -365,7 +365,7 @@
           },
           {
             "type": "value",
-            "source": "heading4",
+            "source": "level3",
             "text": ""
           },
           {
@@ -395,7 +395,7 @@
         "segments": [
           {
             "type": "value",
-            "source": "heading2",
+            "source": "level1",
             "text": ""
           },
           {
@@ -405,7 +405,7 @@
           },
           {
             "type": "value",
-            "source": "heading3",
+            "source": "level2",
             "text": ""
           },
           {
@@ -415,7 +415,7 @@
           },
           {
             "type": "value",
-            "source": "heading4",
+            "source": "level3",
             "text": ""
           },
           {
@@ -455,7 +455,7 @@
         "segments": [
           {
             "type": "value",
-            "source": "heading2",
+            "source": "level1",
             "text": ""
           },
           {
@@ -465,7 +465,7 @@
           },
           {
             "type": "value",
-            "source": "heading3",
+            "source": "level2",
             "text": ""
           },
           {
@@ -475,7 +475,7 @@
           },
           {
             "type": "value",
-            "source": "heading4",
+            "source": "level3",
             "text": ""
           },
           {
@@ -525,7 +525,7 @@
         "segments": [
           {
             "type": "value",
-            "source": "heading2",
+            "source": "level1",
             "text": ""
           },
           {
@@ -535,7 +535,7 @@
           },
           {
             "type": "value",
-            "source": "heading3",
+            "source": "level2",
             "text": ""
           },
           {
@@ -545,7 +545,7 @@
           },
           {
             "type": "value",
-            "source": "heading4",
+            "source": "level3",
             "text": ""
           },
           {
@@ -649,8 +649,8 @@
       "heading1": {
         "enabled": true,
         "display_shell": "chapter_cn",
-        "display_core_style": "cn_lower",
-        "reference_core_style": "cn_lower",
+        "display_core_style": "arabic",
+        "reference_core_style": "arabic",
         "chain": "current_only",
         "title_separator": "　",
         "ooxml_separator_mode": "inline",
@@ -662,10 +662,10 @@
       },
       "heading2": {
         "enabled": true,
-        "display_shell": "section_cn",
-        "display_core_style": "cn_lower",
-        "reference_core_style": "cn_lower",
-        "chain": "current_only",
+        "display_shell": "plain",
+        "display_core_style": "arabic",
+        "reference_core_style": "arabic",
+        "chain": "l1_dot_current",
         "title_separator": "　",
         "ooxml_separator_mode": "inline",
         "ooxml_suff": "nothing",
@@ -676,10 +676,10 @@
       },
       "heading3": {
         "enabled": true,
-        "display_shell": "dunhao_cn",
-        "display_core_style": "cn_lower",
-        "reference_core_style": "cn_lower",
-        "chain": "current_only",
+        "display_shell": "plain",
+        "display_core_style": "arabic",
+        "reference_core_style": "arabic",
+        "chain": "l1_dot_l2_dot_current",
         "title_separator": "　",
         "ooxml_separator_mode": "inline",
         "ooxml_suff": "nothing",
@@ -690,10 +690,10 @@
       },
       "heading4": {
         "enabled": true,
-        "display_shell": "paren_cn",
-        "display_core_style": "cn_lower",
-        "reference_core_style": "cn_lower",
-        "chain": "current_only",
+        "display_shell": "plain",
+        "display_core_style": "arabic",
+        "reference_core_style": "arabic",
+        "chain": "l1_dot_l2_dot_l3_dot_current",
         "title_separator": "　",
         "ooxml_separator_mode": "inline",
         "ooxml_suff": "nothing",
@@ -910,7 +910,7 @@
   "citation_link": {
     "enabled": true,
     "auto_number_reference_entries": true,
-    "superscript_outer_page_numbers": false
+    "superscript_outer_page_numbers": true
   },
   "formula_convert": {
     "enabled": true,
@@ -1005,7 +1005,7 @@
     },
     "heading1": {
       "font_cn": "黑体",
-      "font_en": "Arial",
+      "font_en": "Times New Roman",
       "size_pt": 16.0,
       "size_display": "三号",
       "bold": true,
@@ -1029,12 +1029,12 @@
     },
     "heading2": {
       "font_cn": "黑体",
-      "font_en": "Arial",
+      "font_en": "Times New Roman",
       "size_pt": 14.0,
       "size_display": "四号",
       "bold": true,
       "italic": false,
-      "alignment": "center",
+      "alignment": "left",
       "first_line_indent_chars": 0.0,
       "first_line_indent_unit": "chars",
       "left_indent_chars": 0.0,
@@ -1053,15 +1053,15 @@
     },
     "heading3": {
       "font_cn": "黑体",
-      "font_en": "Arial",
-      "size_pt": 13.0,
-      "size_display": "13",
-      "bold": false,
+      "font_en": "Times New Roman",
+      "size_pt": 12.0,
+      "size_display": "小四",
+      "bold": true,
       "italic": false,
       "alignment": "left",
       "first_line_indent_chars": 0.0,
       "first_line_indent_unit": "chars",
-      "left_indent_chars": 2.0,
+      "left_indent_chars": 0.0,
       "left_indent_unit": "chars",
       "right_indent_chars": 0.0,
       "right_indent_unit": "chars",
@@ -1077,15 +1077,15 @@
     },
     "heading4": {
       "font_cn": "黑体",
-      "font_en": "Arial",
+      "font_en": "Times New Roman",
       "size_pt": 12.0,
-      "size_display": "12",
-      "bold": false,
+      "size_display": "小四",
+      "bold": true,
       "italic": false,
       "alignment": "left",
       "first_line_indent_chars": 0.0,
       "first_line_indent_unit": "chars",
-      "left_indent_chars": 2.0,
+      "left_indent_chars": 0.0,
       "left_indent_unit": "chars",
       "right_indent_chars": 0.0,
       "right_indent_unit": "chars",
@@ -1197,9 +1197,9 @@
     },
     "abstract_title_cn": {
       "font_cn": "黑体",
-      "font_en": "Arial",
-      "size_pt": 18.0,
-      "size_display": "18",
+      "font_en": "Times New Roman",
+      "size_pt": 16.0,
+      "size_display": "三号",
       "bold": true,
       "italic": false,
       "alignment": "center",
@@ -1220,10 +1220,10 @@
       "space_after_pt": 18.0
     },
     "abstract_title_en": {
-      "font_cn": "Arial",
-      "font_en": "Arial",
-      "size_pt": 18.0,
-      "size_display": "18",
+      "font_cn": "Times New Roman",
+      "font_en": "Times New Roman",
+      "size_pt": 16.0,
+      "size_display": "三号",
       "bold": true,
       "italic": false,
       "alignment": "center",
@@ -1295,7 +1295,7 @@
       "font_cn": "黑体",
       "font_en": "Times New Roman",
       "size_pt": 16.0,
-      "size_display": "16",
+      "size_display": "三号",
       "bold": true,
       "italic": false,
       "alignment": "center",
@@ -1318,8 +1318,8 @@
     "toc_chapter": {
       "font_cn": "宋体",
       "font_en": "Times New Roman",
-      "size_pt": 14.0,
-      "size_display": "14",
+      "size_pt": 12.0,
+      "size_display": "小四",
       "bold": false,
       "italic": false,
       "alignment": "justify",
@@ -1334,16 +1334,16 @@
       "special_indent_mode": "none",
       "special_indent_value": 0.0,
       "special_indent_unit": "chars",
-      "line_spacing_type": "single",
-      "line_spacing_pt": 1.0,
-      "space_before_pt": 6.0,
+      "line_spacing_type": "exact",
+      "line_spacing_pt": 22.0,
+      "space_before_pt": 0.0,
       "space_after_pt": 0.0
     },
     "toc_level1": {
       "font_cn": "宋体",
       "font_en": "Times New Roman",
       "size_pt": 12.0,
-      "size_display": "12",
+      "size_display": "小四",
       "bold": false,
       "italic": false,
       "alignment": "justify",
@@ -1358,16 +1358,16 @@
       "special_indent_mode": "none",
       "special_indent_value": 0.0,
       "special_indent_unit": "chars",
-      "line_spacing_type": "single",
-      "line_spacing_pt": 1.0,
-      "space_before_pt": 6.0,
+      "line_spacing_type": "exact",
+      "line_spacing_pt": 22.0,
+      "space_before_pt": 0.0,
       "space_after_pt": 0.0
     },
     "toc_level2": {
       "font_cn": "宋体",
       "font_en": "Times New Roman",
-      "size_pt": 10.5,
-      "size_display": "10.5",
+      "size_pt": 12.0,
+      "size_display": "小四",
       "bold": false,
       "italic": false,
       "alignment": "justify",
@@ -1382,9 +1382,9 @@
       "special_indent_mode": "none",
       "special_indent_value": 0.0,
       "special_indent_unit": "chars",
-      "line_spacing_type": "single",
-      "line_spacing_pt": 1.0,
-      "space_before_pt": 6.0,
+      "line_spacing_type": "exact",
+      "line_spacing_pt": 22.0,
+      "space_before_pt": 0.0,
       "space_after_pt": 0.0
     },
     "references_body": {
@@ -1412,14 +1412,14 @@
       "space_after_pt": 0.0
     },
     "acknowledgment_body": {
-      "font_cn": "仿宋",
+      "font_cn": "宋体",
       "font_en": "Times New Roman",
       "size_pt": 12.0,
-      "size_display": "12",
+      "size_display": "小四",
       "bold": false,
       "italic": false,
       "alignment": "justify",
-      "first_line_indent_chars": 0.0,
+      "first_line_indent_chars": 2.0,
       "first_line_indent_unit": "chars",
       "left_indent_chars": 0.0,
       "left_indent_unit": "chars",
@@ -1427,11 +1427,11 @@
       "right_indent_unit": "chars",
       "hanging_indent_chars": 0.0,
       "hanging_indent_unit": "chars",
-      "special_indent_mode": "none",
-      "special_indent_value": 0.0,
+      "special_indent_mode": "first_line",
+      "special_indent_value": 2.0,
       "special_indent_unit": "chars",
       "line_spacing_type": "exact",
-      "line_spacing_pt": 16.0,
+      "line_spacing_pt": 20.0,
       "space_before_pt": 0.0,
       "space_after_pt": 0.0
     },
@@ -1630,8 +1630,8 @@
     "page_number": {
       "font_cn": "宋体",
       "font_en": "Times New Roman",
-      "size_pt": 10.5,
-      "size_display": "10.5",
+      "size_pt": 9.0,
+      "size_display": "小五",
       "bold": false,
       "italic": false,
       "alignment": "center",

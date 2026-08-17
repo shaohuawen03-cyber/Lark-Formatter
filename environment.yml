@@ -1,0 +1,10 @@
+name: lark-formatter
+channels:
+  - conda-forge
+dependencies:
+  - python>=3.10
+  - pip>=24.0
+  # 其余依赖（含 Windows 专属 pywin32）统一交由 pip 按 requirements.txt 解析，
+  # 避免 conda 与 pip 对同一包双重管理产生版本冲突。
+  - pip:
+      - -r requirements.txt

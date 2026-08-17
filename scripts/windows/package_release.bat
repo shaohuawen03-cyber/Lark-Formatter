@@ -4,9 +4,19 @@ set "REPO_ROOT=%~dp0..\.."
 for %%I in ("%REPO_ROOT%") do set "REPO_ROOT=%%~fI"
 cd /d "%REPO_ROOT%"
 
-if not exist ".venv\Scripts\python.exe" (
-    echo [ERROR] Missing virtual environment: .venv
-    echo Run "install_env.bat" first.
+set "PY_EXE="
+if exist ".venv\Scripts\python.exe" (
+    set "PY_EXE=.venv\Scripts\python.exe"
+) else (
+    where python >nul 2>&1
+    if not errorlevel 1 (
+        set "PY_EXE=python"
+    )
+)
+
+if "%PY_EXE%"=="" (
+    echo [ERROR] No Python environment found.
+    echo Please run "install_env.bat" (venv) or "install_env_conda.bat" (conda) first.
     pause
     exit /b 1
 )
@@ -27,10 +37,10 @@ if not errorlevel 1 (
 )
 
 echo [1/3] Ensure PyInstaller is installed
-".venv\Scripts\python.exe" -c "import PyInstaller" >nul 2>&1
+"%PY_EXE%" -c "import PyInstaller" >nul 2>&1
 if errorlevel 1 (
     echo PyInstaller not found, installing...
-    ".venv\Scripts\python.exe" -m pip install pyinstaller
+    "%PY_EXE%" -m pip install pyinstaller
     if errorlevel 1 (
         echo [ERROR] Failed to install PyInstaller
         pause
@@ -41,7 +51,7 @@ if errorlevel 1 (
 )
 
 echo [2/3] Build release package from %SPEC_FILE%
-".venv\Scripts\python.exe" -m PyInstaller --noconfirm --clean "%SPEC_FILE%"
+"%PY_EXE%" -m PyInstaller --noconfirm --clean "%SPEC_FILE%"
 if errorlevel 1 (
     echo [ERROR] Packaging failed
     pause
