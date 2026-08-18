@@ -13,6 +13,7 @@ from xml.sax.saxutils import escape
 from src.docx_io.zotero_fields import (
     docx_has_zotero_fields,
     repair_docx,
+    strip_numbering_inside_zotero_bibliography,
 )
 
 CONTENT_TYPES = (
@@ -168,6 +169,106 @@ class ZoteroCompatTests(unittest.TestCase):
         self.assertIn("csl", assets)
         self.assertTrue(assets["csl"].read_text(encoding="utf-8").lstrip().startswith("<?xml"))
         self.assertTrue(docx_has_zotero_fields(assets["template"]))
+
+
+def _seq_field(number: str) -> str:
+    return (
+        '<w:r><w:t xml:space="preserve">[</w:t></w:r>'
+        f'<w:bookmarkStart w:id="1" w:name="_RefNum_RefEntry_{number}"/>'
+        '<w:r><w:fldChar w:fldCharType="begin"/></w:r>'
+        '<w:r><w:instrText xml:space="preserve"> SEQ RefEntry \\* ARABIC </w:instrText></w:r>'
+        '<w:r><w:fldChar w:fldCharType="separate"/></w:r>'
+        f'<w:r><w:t>{number}</w:t></w:r>'
+        '<w:r><w:fldChar w:fldCharType="end"/></w:r>'
+        f'<w:bookmarkEnd w:id="1"/>'
+        '<w:r><w:t xml:space="preserve">] </w:t></w:r>'
+    )
+
+
+BIBL_WITH_SEQ = (
+    '<?xml version="1.0" encoding="UTF-8" standalone="yes"?>'
+    '<w:document xmlns:w="http://schemas.openxmlformats.org/wordprocessingml/2006/main">'
+    "<w:body>"
+    # 域首段：SEQ 编号被挤到 Zotero 域代码之前（Word 里就会显示成 [1] [1]）
+    "<w:p>"
+    + _seq_field("1")
+    + '<w:r><w:fldChar w:fldCharType="begin"/></w:r>'
+    '<w:r><w:instrText xml:space="preserve"> ADDIN ZOTERO_BIBL {"uncited":[]} CSL_BIBLIOGRAPHY </w:instrText></w:r>'
+    '<w:r><w:fldChar w:fldCharType="separate"/></w:r>'
+    "<w:r><w:t>陈登原. 国史旧闻.</w:t></w:r>"
+    "</w:p>"
+    # 域内后续段落：SEQ 编号插在域内容里
+    "<w:p>" + _seq_field("2") + "<w:r><w:t>袁训来. 蓝田生物群.</w:t></w:r>"
+    '<w:r><w:fldChar w:fldCharType="end"/></w:r></w:p>'
+    # 域外的普通参考文献段落：不能被动到
+    "<w:p>" + _seq_field("3") + "<w:r><w:t>附录条目.</w:t></w:r></w:p>"
+    "</w:body></w:document>"
+)
+
+
+class ZoteroBibliographyNumberingTests(unittest.TestCase):
+    def test_seq_numbering_moved_into_bibliography_field(self) -> None:
+        fixed, removed = strip_numbering_inside_zotero_bibliography(BIBL_WITH_SEQ)
+        self.assertEqual(removed, 2)
+
+        # 域内的两条编号被还原成静态文本，且都位于域内容里
+        bibl_start = fixed.index("ZOTERO_BIBL")
+        para_start = fixed.rfind("<w:p>", 0, bibl_start)
+        before_field = fixed[para_start:bibl_start]
+        self.assertNotIn("SEQ RefEntry", before_field)
+        self.assertNotIn("[1]", before_field)
+
+        separate = fixed.index('w:fldCharType="separate"', bibl_start)
+        after_separate = fixed[separate : separate + 400]
+        self.assertIn("[1] ", after_separate)
+
+        # 域外那条参考文献的 SEQ 编号保持不变
+        tail = fixed[fixed.index("附录条目") - 800 : ]
+        self.assertIn("SEQ RefEntry", tail)
+        self.assertEqual(fixed.count("SEQ RefEntry"), 1)
+
+    def test_stripper_is_noop_without_zotero_bibliography(self) -> None:
+        plain = BIBL_WITH_SEQ.replace("ZOTERO_BIBL", "OTHER_FIELD")
+        fixed, removed = strip_numbering_inside_zotero_bibliography(plain)
+        self.assertEqual(removed, 0)
+        self.assertEqual(fixed, plain)
+
+    def test_citation_link_rule_locks_zotero_paragraphs(self) -> None:
+        from docx import Document as DocxDocument
+        from lxml import etree
+
+        from src.engine.rules.citation_link import _zotero_locked_paragraph_indexes
+
+        doc = DocxDocument()
+        doc.add_paragraph("正文段落")
+        para = doc.add_paragraph()
+        para._element.append(
+            etree.fromstring(
+                '<w:r xmlns:w="http://schemas.openxmlformats.org/wordprocessingml/2006/main">'
+                '<w:fldChar w:fldCharType="begin"/></w:r>'
+            )
+        )
+        para._element.append(
+            etree.fromstring(
+                '<w:r xmlns:w="http://schemas.openxmlformats.org/wordprocessingml/2006/main">'
+                '<w:instrText xml:space="preserve"> ADDIN ZOTERO_BIBL {} CSL_BIBLIOGRAPHY </w:instrText>'
+                "</w:r>"
+            )
+        )
+        second = doc.add_paragraph("域内第二条")
+        second._element.append(
+            etree.fromstring(
+                '<w:r xmlns:w="http://schemas.openxmlformats.org/wordprocessingml/2006/main">'
+                '<w:fldChar w:fldCharType="end"/></w:r>'
+            )
+        )
+        doc.add_paragraph("域外段落")
+
+        locked = _zotero_locked_paragraph_indexes(doc)
+        self.assertIn(1, locked)
+        self.assertIn(2, locked)
+        self.assertNotIn(0, locked)
+        self.assertNotIn(3, locked)
 
 
 if __name__ == "__main__":

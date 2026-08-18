@@ -23,6 +23,7 @@ from __future__ import annotations
 import json
 import re
 import zipfile
+from copy import deepcopy
 from dataclasses import dataclass, field
 from io import BytesIO
 from pathlib import Path
@@ -37,6 +38,7 @@ __all__ = [
     "docx_has_zotero_fields",
     "build_document_prefs",
     "normalize_document_xml",
+    "strip_numbering_inside_zotero_bibliography",
     "repair_docx",
 ]
 
@@ -94,6 +96,7 @@ class ZoteroRepairReport:
     citations: int = 0
     citation_items_fixed: int = 0
     field_simple_converted: int = 0
+    numbering_conflicts_removed: int = 0
     prefs_written: bool = False
     prefs_present: bool = False
     dropped_parts: list[str] = field(default_factory=list)
@@ -107,6 +110,8 @@ class ZoteroRepairReport:
             bits.append(f"补齐 uris {self.citation_items_fixed} 项")
         if self.field_simple_converted:
             bits.append(f"fldSimple 转复杂域 {self.field_simple_converted} 处")
+        if self.numbering_conflicts_removed:
+            bits.append(f"清除域内重复编号 {self.numbering_conflicts_removed} 处")
         if self.prefs_written:
             bits.append("已写入 ZOTERO_PREF 文档首选项")
         elif self.prefs_present:
@@ -309,10 +314,176 @@ def _fix_citation_payload(payload: dict) -> int:
     return fixed
 
 
+_W_NS = "http://schemas.openxmlformats.org/wordprocessingml/2006/main"
+
+
+def _wq(tag: str) -> str:
+    return f"{{{_W_NS}}}{tag}"
+
+
+def strip_numbering_inside_zotero_bibliography(xml: str) -> tuple[str, int]:
+    """删除 Zotero 参考文献域范围内被其他规则插入的 ``SEQ RefEntry`` 编号。
+
+    排版规则一旦给 Zotero 参考文献域内（或域首段的域代码之前）插入自动编号，
+    Word 里点 Refresh 后 Zotero 会重建域内容，域外残留的编号就会变成
+    “[1] [1] 陈登原…”这种重复。这里把这些编号连同其方括号一并清掉。
+    """
+    if "ZOTERO_BIBL" not in xml or "SEQ RefEntry" not in xml:
+        return xml, 0
+
+    from lxml import etree  # 延迟导入：python-docx 已带 lxml
+
+    try:
+        root = etree.fromstring(xml.encode("utf-8"))
+    except etree.XMLSyntaxError:
+        return xml, 0
+
+    paragraphs = root.iter(_wq("p"))
+    removed = 0
+    depth = 0
+    zotero_depth: int | None = None
+
+    for para in paragraphs:
+        para_in_zotero = zotero_depth is not None
+        for node in para.iter():
+            if node.tag == _wq("fldChar"):
+                fld_type = (node.get(_wq("fldCharType")) or "").strip().lower()
+                if fld_type == "begin":
+                    depth += 1
+                elif fld_type == "end":
+                    if zotero_depth is not None and depth <= zotero_depth:
+                        zotero_depth = None
+                    depth = max(0, depth - 1)
+            elif node.tag == _wq("instrText"):
+                if "ADDIN ZOTERO_" in (node.text or "").upper():
+                    para_in_zotero = True
+                    if zotero_depth is None:
+                        zotero_depth = max(1, depth)
+        if not (para_in_zotero or zotero_depth is not None):
+            continue
+        removed += _strip_seq_reference_numbering(para)
+
+    if not removed:
+        return xml, 0
+    return etree.tostring(root, xml_declaration=True, encoding="UTF-8", standalone=True).decode(
+        "utf-8"
+    ), removed
+
+
+def _strip_seq_reference_numbering(para) -> int:
+    """把段落里的 ``[ SEQ RefEntry ]`` 编号块换回静态文本，返回处理个数。
+
+    直接删除会让刷新前的文档丢掉序号，因此用域缓存的数字重建 ``[N] `` 纯文本；
+    Zotero Refresh 时会用自己的编号覆盖整段域内容，不会再出现重复。
+    书签保持原位，避免正文里指向它的 REF 域失效。
+    """
+    from lxml import etree
+
+    removed = 0
+    while True:
+        children = list(para)
+        target = None
+        zotero_instr_index: int | None = None
+        for index, child in enumerate(children):
+            if child.tag != _wq("r"):
+                continue
+            instr = child.find(_wq("instrText"))
+            if instr is None:
+                continue
+            code = instr.text or ""
+            if target is None and "SEQ RefEntry" in code:
+                target = index
+            if zotero_instr_index is None and "ADDIN ZOTERO_" in code.upper():
+                zotero_instr_index = index
+        if target is None:
+            break
+
+        start = target
+        while start > 0:
+            start -= 1
+            node = children[start]
+            if node.tag != _wq("r"):
+                continue
+            fld = node.find(_wq("fldChar"))
+            if fld is not None and (fld.get(_wq("fldCharType")) or "").lower() == "begin":
+                break
+        end = target
+        cached = ""
+        while end < len(children) - 1:
+            end += 1
+            node = children[end]
+            if node.tag != _wq("r"):
+                continue
+            fld = node.find(_wq("fldChar"))
+            if fld is not None and (fld.get(_wq("fldCharType")) or "").lower() == "end":
+                break
+            text_el = node.find(_wq("t"))
+            if text_el is not None and (text_el.text or "").strip().isdigit():
+                cached = (text_el.text or "").strip()
+
+        # 相邻的方括号文本一起收编（书签节点保持原位，避免 REF 域失效）
+        remove_indexes = set(range(start, end + 1))
+        cursor = start - 1
+        while cursor >= 0:
+            node = children[cursor]
+            if node.tag in (_wq("bookmarkStart"), _wq("bookmarkEnd")):
+                cursor -= 1
+                continue
+            if node.tag == _wq("r") and "".join(node.itertext()).strip() in {"[", "［"}:
+                remove_indexes.add(cursor)
+            break
+        cursor = end + 1
+        while cursor < len(children):
+            node = children[cursor]
+            if node.tag in (_wq("bookmarkStart"), _wq("bookmarkEnd")):
+                cursor += 1
+                continue
+            if node.tag == _wq("r") and "".join(node.itertext()).strip() in {"]", "］"}:
+                remove_indexes.add(cursor)
+            break
+        insert_at = min(remove_indexes)
+
+        rpr = children[target].find(_wq("rPr"))
+        # 编号块若落在 Zotero 域代码之前，说明它被挤到了域外：刷新时 Zotero 会在
+        # 域内重新生成 “[1]”，域外再留一个就成了重复编号。把它挪进域内（紧跟
+        # separate 之后），刷新前后都只显示一个序号。
+        if zotero_instr_index is not None and insert_at < zotero_instr_index:
+            separate_index = None
+            for index in range(zotero_instr_index, len(children)):
+                node = children[index]
+                if node.tag != _wq("r"):
+                    continue
+                fld = node.find(_wq("fldChar"))
+                if fld is not None and (fld.get(_wq("fldCharType")) or "").lower() == "separate":
+                    separate_index = index
+                    break
+            if separate_index is None:
+                cached = ""
+            else:
+                insert_at = separate_index + 1
+        if cached:
+            replacement = etree.Element(_wq("r"))
+            if rpr is not None:
+                replacement.append(deepcopy(rpr))
+            text_el = etree.SubElement(replacement, _wq("t"))
+            text_el.set("{http://www.w3.org/XML/1998/namespace}space", "preserve")
+            text_el.text = f"[{cached}] "
+            para.insert(insert_at, replacement)
+
+        for index in sorted(remove_indexes, reverse=True):
+            node = children[index]
+            parent = node.getparent()
+            if parent is not None:
+                parent.remove(node)
+        removed += 1
+
+    return removed
+
+
 def normalize_document_xml(xml: str) -> tuple[str, dict]:
     """规范化 ``word/document.xml``，返回 (新 XML, 统计信息)。"""
     stats = {"citations": 0, "citation_items_fixed": 0, "field_simple_converted": 0,
-             "pref_paragraphs_removed": 0}
+             "pref_paragraphs_removed": 0, "numbering_conflicts_removed": 0}
 
     def _convert_simple(match: re.Match[str]) -> str:
         stats["field_simple_converted"] += 1
@@ -346,6 +517,11 @@ def normalize_document_xml(xml: str) -> tuple[str, dict]:
     # 正文里的 ZOTERO_PREF 域是早期误写，插件从不读取，留着反而干扰。
     xml, removed = _PREF_PARAGRAPH_RE.subn("", xml)
     stats["pref_paragraphs_removed"] = removed
+
+    # 清掉别的规则塞进 Zotero 参考文献域的 SEQ 自动编号，否则 Refresh 后
+    # 会出现“[1] [1] …”这种重复编号。
+    xml, conflicts = strip_numbering_inside_zotero_bibliography(xml)
+    stats["numbering_conflicts_removed"] = conflicts
     return xml, stats
 
 
@@ -395,6 +571,7 @@ def repair_docx(
     report.citations = stats["citations"]
     report.citation_items_fixed = stats["citation_items_fixed"]
     report.field_simple_converted = stats["field_simple_converted"]
+    report.numbering_conflicts_removed = stats["numbering_conflicts_removed"]
 
     others, existing_prefs = _existing_custom_properties(parts.get(CUSTOM_PROPS_PART))
     report.prefs_present = bool(existing_prefs.strip())

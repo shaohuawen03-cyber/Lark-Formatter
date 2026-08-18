@@ -195,18 +195,54 @@ def _paragraph_has_field(para) -> bool:
 
 
 def _paragraph_has_blocking_field(para) -> bool:
-    """Only block for existing citation-like fields (EndNote / this rule)."""
+    """Only block for existing citation-like fields (EndNote / Zotero / this rule)."""
     if not _paragraph_has_field(para):
         return False
     for instr in para._element.iter(_w("instrText")):
         code = (instr.text or "").upper()
         if "ADDIN EN.CITE" in code:
             return True
+        if "ADDIN ZOTERO_" in code:
+            # Zotero 活动引用域的内容由插件重建，改动会导致 Refresh 后出现
+            # “[1] [1] …”这类重复编号。
+            return True
         if "HYPERLINK" in code and "_REFENTRY_" in code:
             return True
         if "REF " in code and ("_REFNUM_" in code or "_REFENTRY_" in code):
             return True
     return False
+
+
+def _zotero_locked_paragraph_indexes(doc: Document) -> set[int]:
+    """段落索引集合：落在任意 Zotero 活动引用域内部的段落。
+
+    Zotero 的参考文献域（``ADDIN ZOTERO_BIBL``）通常跨多个段落，只有第一个段落
+    带域代码。若排版规则给域内段落插入 SEQ 编号，Word 中点 Refresh 后 Zotero 会
+    重建域内容，域外残留的编号就变成重复的“[1] [1]”。因此整段区间都要锁定。
+    """
+    locked: set[int] = set()
+    depth = 0
+    zotero_depth: int | None = None
+    for index, para in enumerate(doc.paragraphs):
+        para_locked = zotero_depth is not None
+        for child in para._element.iter():
+            tag = child.tag
+            if tag == _w("fldChar"):
+                fld_type = (child.get(_w("fldCharType")) or "").strip().lower()
+                if fld_type == "begin":
+                    depth += 1
+                elif fld_type == "end":
+                    if zotero_depth is not None and depth <= zotero_depth:
+                        zotero_depth = None
+                    depth = max(0, depth - 1)
+            elif tag == _w("instrText"):
+                if "ADDIN ZOTERO_" in (child.text or "").upper():
+                    para_locked = True
+                    if zotero_depth is None:
+                        zotero_depth = max(1, depth)
+        if para_locked or zotero_depth is not None:
+            locked.add(index)
+    return locked
 
 
 def _max_bookmark_id(doc: Document) -> int:
@@ -864,6 +900,7 @@ def _build_reference_targets(
     existing_names: set[str],
     next_bookmark_id: int,
     auto_number_reference_entries: bool,
+    locked_paragraphs: set[int] | None = None,
 ) -> tuple[dict[int, str], int, int, int, set[int], int]:
     """Build mapping from reference number -> target bookmark.
 
@@ -877,9 +914,13 @@ def _build_reference_targets(
     number_fields_inserted = 0
     reference_entries_count = 0
     next_entry_serial = _next_ref_entry_serial(existing_names)
+    locked_paragraphs = locked_paragraphs or set()
 
     for i in range(ref_start, ref_end + 1):
         if i < 0 or i >= len(doc.paragraphs):
+            continue
+        if i in locked_paragraphs:
+            # Zotero 活动引用域内容由插件维护，跳过编号改写。
             continue
         para = doc.paragraphs[i]
         text = (para.text or "").strip()
@@ -1004,6 +1045,7 @@ class CitationLinkRule(BaseRule):
             return
 
         ref_start, ref_end = ref_range
+        zotero_locked = _zotero_locked_paragraph_indexes(doc)
         next_bookmark_id = _max_bookmark_id(doc) + 1
         existing_names = _collect_bookmark_names(doc)
 
@@ -1021,6 +1063,7 @@ class CitationLinkRule(BaseRule):
             existing_names=existing_names,
             next_bookmark_id=next_bookmark_id,
             auto_number_reference_entries=auto_number_reference_entries,
+            locked_paragraphs=zotero_locked,
         )
 
         if not num_to_target and number_fields_inserted <= 0 and entry_bookmarks_added <= 0:
@@ -1044,6 +1087,9 @@ class CitationLinkRule(BaseRule):
         if num_to_target:
             for i in range(body_start, body_end + 1):
                 if i < 0 or i >= len(doc.paragraphs):
+                    continue
+                if i in zotero_locked:
+                    skipped_field_paras += 1
                     continue
                 para = doc.paragraphs[i]
                 if not (para.text or "").strip():
@@ -1096,6 +1142,7 @@ class CitationLinkRule(BaseRule):
                 f"reference_entries={reference_entries_count}, "
                 f"entry_bookmarks_added={entry_bookmarks_added}, "
                 f"reference_seq_inserted={number_fields_inserted}, "
+                f"zotero_locked_paragraphs={len(zotero_locked)}, "
                 f"auto_numbering={'on' if auto_number_reference_entries else 'off'}, "
                 f"outer_page_superscript="
                 f"{'on' if superscript_outer_pages else 'off'}"

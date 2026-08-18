@@ -134,3 +134,34 @@ python main.py
    （JSON 报告 `xxx_排版附件\xxx_报告.json` 里也会有一条 `zotero_live_citation` 记录。）
 7. **Word 端**：先开 Zotero（确认已安装 GB/T 7714-2015 numeric 样式）→ 再用 Word 打开成品 →
    `Zotero → Refresh`，正文 `[1]`–`[5]` 上标与文末参考文献正常重建即为全流程通过。
+
+---
+
+## 五、v0.21.2 修复：参考文献出现「[1] [1]」重复编号
+
+**现象**：Word 中 `Zotero → Refresh` 后，第一条参考文献显示成 `[1] [1] 陈登原…`。
+
+**原因**：`citation_link`（正文参考文献域关联，“参考文献自动编号纠偏”）会把 `[1] ` 这类
+静态序号换成 `SEQ RefEntry` 自动编号域。它不认识 Zotero 的参考文献域，于是：
+- 把序号插到了 `ADDIN ZOTERO_BIBL` 域**开始标记之前**（跑到域外）；
+- 还给域内第 2–5 条也插了 SEQ 域。
+
+刷新时 Zotero 用 CSL 重建域内容（自带 `[1]`），域外那个 `[1]` 还在 → 重复。
+
+**修复（两道保险）**：
+1. `citation_link` 新增 `_zotero_locked_paragraph_indexes()`，把 Zotero 域覆盖的整段区间
+   （含只在首段出现域代码、后续段落无域代码的情况）整体锁定，不再改写其编号；
+   `ADDIN ZOTERO_` 也加入“阻断字段”判定。
+2. Zotero 兼容层新增 `strip_numbering_inside_zotero_bibliography()`：保存后若发现域内/域前
+   残留 `SEQ RefEntry` 编号，自动清理；能还原的还原成静态 `[N] ` 并**挪进域内**，
+   域外一个不留。已经生成过的旧文档也能修：
+
+```powershell
+python -m src.docx_io.zotero_fields "test_zotero_run_new.docx"
+# 输出示例：引用域 5 处，清除域内重复编号 5 处，保留原有文档首选项
+```
+
+**回归验证**：
+- 带 Zotero 的文档跑完整流水线：`SEQ RefEntry` 数量 = 0，域外前缀为空，域内 `[1]`–`[5]` 各一次；
+- 不带 Zotero 的普通论文：自动编号照常工作（`reference_seq_inserted=3`）；
+- 新增 3 条单测（共 10 条 Zotero 相关用例全通过）。
