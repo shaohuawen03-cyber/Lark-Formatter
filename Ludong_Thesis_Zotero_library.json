@@ -1,0 +1,303 @@
+[
+  {
+    "id": "chen_dengyuan_2000",
+    "type": "book",
+    "title": "国史旧闻：第1卷",
+    "author": [
+      {
+        "family": "陈",
+        "given": "登原"
+      }
+    ],
+    "publisher": "中华书局",
+    "publisher-place": "北京",
+    "issued": {
+      "date-parts": [
+        [
+          2000
+        ]
+      ]
+    },
+    "page": "29"
+  },
+  {
+    "id": "yuan_xunlai_2012",
+    "type": "article-journal",
+    "title": "蓝田生物群：一个认识多细胞生物起源和早期演化的新窗口",
+    "author": [
+      {
+        "family": "袁",
+        "given": "训来"
+      },
+      {
+        "family": "陈",
+        "given": "哲"
+      },
+      {
+        "family": "肖",
+        "given": "书海"
+      }
+    ],
+    "container-title": "科学通报",
+    "volume": "55",
+    "issue": "34",
+    "page": "3219",
+    "issued": {
+      "date-parts": [
+        [
+          2012
+        ]
+      ]
+    }
+  },
+  {
+    "id": "harrison_waldron_2012",
+    "type": "book",
+    "title": "经济数学与金融数学",
+    "author": [
+      {
+        "family": "哈里森",
+        "given": ""
+      },
+      {
+        "family": "沃尔德伦",
+        "given": ""
+      }
+    ],
+    "translator": [
+      {
+        "family": "谢",
+        "given": "远涛"
+      }
+    ],
+    "publisher": "中国人民大学出版社",
+    "publisher-place": "北京",
+    "issued": {
+      "date-parts": [
+        [
+          2012
+        ]
+      ]
+    },
+    "page": "235-236"
+  },
+  {
+    "id": "marx_2013",
+    "type": "chapter",
+    "title": "政治经济学批判",
+    "author": [
+      {
+        "family": "马克思",
+        "given": ""
+      }
+    ],
+    "container-author": [
+      {
+        "family": "马克思",
+        "given": ""
+      },
+      {
+        "family": "恩格斯",
+        "given": ""
+      }
+    ],
+    "container-title": "马克思恩格斯全集：第35卷",
+    "publisher": "人民出版社",
+    "publisher-place": "北京",
+    "issued": {
+      "date-parts": [
+        [
+          2013
+        ]
+      ]
+    },
+    "page": "302"
+  },
+  {
+    "id": "feng_xiqiao_1997",
+    "type": "report",
+    "title": "核反应堆压力管道与压力容器的LBB分析",
+    "author": [
+      {
+        "family": "冯",
+        "given": "西桥"
+      }
+    ],
+    "publisher": "清华大学核能技术设计研究院",
+    "publisher-place": "北京",
+    "issued": {
+      "date-parts": [
+        [
+          1997
+        ]
+      ]
+    }
+  },
+  {
+    "id": "chen_zhiyong_2011",
+    "type": "paper-conference",
+    "title": "中国财税文化价值研究：“中国财税文化国际学术研讨会”论文集",
+    "author": [
+      {
+        "family": "陈",
+        "given": "志勇"
+      }
+    ],
+    "publisher": "经济科学出版社",
+    "publisher-place": "北京",
+    "issued": {
+      "date-parts": [
+        [
+          2011
+        ]
+      ]
+    },
+    "accessed": {
+      "date-parts": [
+        [
+          2013,
+          10,
+          14
+        ]
+      ]
+    },
+    "URL": "http://apabi.lib.pku.edu.cn/usp/pku/pub.mvc?pid=book.detail&metaid=m.20110628-BPO-889-0135&cult=CN"
+  },
+  {
+    "id": "xie_xide_1998",
+    "type": "article-newspaper",
+    "title": "创造学习的新思路",
+    "author": [
+      {
+        "family": "谢",
+        "given": "希德"
+      }
+    ],
+    "container-title": "人民日报",
+    "issued": {
+      "date-parts": [
+        [
+          1998,
+          12,
+          25
+        ]
+      ]
+    },
+    "page": "10"
+  },
+  {
+    "id": "gb_3792_2010",
+    "type": "standard",
+    "title": "文献著录：第4部分非书资料：GB/T 3792.4-2009",
+    "author": [
+      {
+        "literal": "全国信息与文献标准化技术委员会"
+      }
+    ],
+    "publisher": "中国标准出版社",
+    "publisher-place": "北京",
+    "issued": {
+      "date-parts": [
+        [
+          2010
+        ]
+      ]
+    },
+    "page": "3"
+  },
+  {
+    "id": "xiao_yu_2001",
+    "type": "webpage",
+    "title": "出版业信息化迈入快车道",
+    "author": [
+      {
+        "family": "萧",
+        "given": "钰"
+      }
+    ],
+    "issued": {
+      "date-parts": [
+        [
+          2001,
+          12,
+          19
+        ]
+      ]
+    },
+    "accessed": {
+      "date-parts": [
+        [
+          2002,
+          4,
+          15
+        ]
+      ]
+    },
+    "URL": "http://www.creader.com/news/20011219/200112190019.html"
+  },
+  {
+    "id": "cao_2024",
+    "type": "article-journal",
+    "title": "Months away at sea to protect China’s only population of Bryde’s whales",
+    "author": [
+      {
+        "family": "Cao",
+        "given": "S."
+      }
+    ],
+    "container-title": "Nature",
+    "volume": "634",
+    "issue": "8036",
+    "page": "1252-1252",
+    "issued": {
+      "date-parts": [
+        [
+          2024
+        ]
+      ]
+    },
+    "DOI": "10.1038/d41586-024-03358-0"
+  },
+  {
+    "id": "zhang_kaijun_2012",
+    "type": "patent",
+    "title": "轨道火车及高速轨道火车紧急安全制动辅助装置",
+    "author": [
+      {
+        "family": "张",
+        "given": "凯军"
+      }
+    ],
+    "number": "201220158825.2",
+    "issued": {
+      "date-parts": [
+        [
+          2012,
+          4,
+          5
+        ]
+      ]
+    }
+  },
+  {
+    "id": "li_ming_2004",
+    "type": "thesis",
+    "title": "对脚背内侧踢定位球技术的生物力学研究——踢球腿主要关节运动速度的研究",
+    "author": [
+      {
+        "family": "李",
+        "given": "明"
+      }
+    ],
+    "publisher": "苏州大学",
+    "publisher-place": "苏州",
+    "issued": {
+      "date-parts": [
+        [
+          2004
+        ]
+      ]
+    },
+    "genre": "硕士学位论文"
+  }
+]
