@@ -5,12 +5,16 @@ import re
 import unittest
 import zipfile
 from pathlib import Path
+from xml.etree import ElementTree as ET
 
 ROOT = Path(__file__).resolve().parents[1]
 ACTIVE = ROOT / "鲁东大学学术学位论文_Zotero活动引用版.docx"
 TEMPLATE = ROOT / "鲁东大学学术学位论文_Zotero联动模板.docx"
-VALID_OBJECT_KEY = re.compile(r"^[23456789ABCDEFGHIJKLMNPQRSTUVWXYZ]{8}$")
-FAKE_URI = re.compile(r"zotero\.org/users/[^\"\\]+/items/([^\"\\]+)")
+FAKE_URI = re.compile(r"zotero\.org/users/[^\"\\]+/items/")
+NS = {
+    "cp": "http://schemas.openxmlformats.org/officeDocument/2006/custom-properties",
+    "vt": "http://schemas.openxmlformats.org/officeDocument/2006/docPropsVTypes",
+}
 
 
 def _document_xml(path: Path) -> str:
@@ -37,6 +41,21 @@ def _json_payloads(xml: str) -> list[dict]:
     return payloads
 
 
+def _pref_property_text(path: Path) -> str:
+    with zipfile.ZipFile(path) as archive:
+        raw = archive.read("docProps/custom.xml")
+    root = ET.fromstring(raw)
+    chunks: list[tuple[int, str]] = []
+    for prop in root.findall("cp:property", NS):
+        name = prop.get("name") or ""
+        if not name.startswith("ZOTERO_PREF_"):
+            continue
+        index = int(name.rsplit("_", 1)[1])
+        value = prop.findtext("vt:lpwstr", default="", namespaces=NS)
+        chunks.append((index, value))
+    return "".join(text for _, text in sorted(chunks))
+
+
 class ZoteroWordFieldTests(unittest.TestCase):
     def test_active_document_can_refresh(self) -> None:
         self._assert_refreshable(ACTIVE, min_citations=5)
@@ -50,14 +69,19 @@ class ZoteroWordFieldTests(unittest.TestCase):
         names = _archive_names(path)
 
         self.assertNotIn("fldSimple", xml)
-        self.assertIn("ZOTERO_PREF", xml)
+        self.assertNotIn("ZOTERO_PREF", xml)
         self.assertIn("ZOTERO_BIBL", xml)
-        self.assertIn("customXml/item2.xml", names)
+        self.assertIn("docProps/custom.xml", names)
+        self.assertNotIn("customXml/item2.xml", names)
         self.assertGreaterEqual(xml.count("ZOTERO_ITEM"), min_citations)
         self.assertNotIn("ITEM-1", xml)
+        self.assertIsNone(FAKE_URI.search(xml))
 
-        for match in FAKE_URI.finditer(xml):
-            self.assertRegex(match.group(1), VALID_OBJECT_KEY, match.group(0))
+        pref = _pref_property_text(path)
+        self.assertIn('data-version="3"', pref)
+        self.assertIn("china-national-standard-gb-t-7714-2015-numeric", pref)
+        self.assertIn('name="storeReferences" value="true"', pref)
+        self.assertIn('name="fieldType" value="Field"', pref)
 
         payloads = _json_payloads(xml)
         self.assertGreaterEqual(len(payloads), min_citations)
@@ -69,6 +93,7 @@ class ZoteroWordFieldTests(unittest.TestCase):
             self.assertEqual(payload["properties"]["noteIndex"], 0)
             for cited in payload["citationItems"]:
                 self.assertNotIn("uris", cited)
+                self.assertIsInstance(cited["id"], str)
                 self.assertTrue(cited["itemData"]["title"])
                 self.assertEqual(cited["id"], cited["itemData"]["id"])
 

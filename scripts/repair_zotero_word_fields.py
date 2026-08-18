@@ -1,21 +1,14 @@
 #!/usr/bin/env python3
-"""Repair hand-crafted Zotero Word fields so Refresh can complete.
+"""Make the thesis Zotero documents refreshable in Word for Windows.
 
-The previous active document used invalid item URIs (ITEM-1), put style
-metadata inside citation JSON, and stored the bibliography as a single
-``w:t`` with raw newlines.  The companion template used ``fldSimple``
-fields, reused the same citationID twice, and had no bibliography field
-or document preferences.  Any of those will make the Zotero Word plugin
-open a hidden modal (missing items / document prefs) and sit on
-"Refreshing..." forever.
+The Windows plugin does NOT read a body-level ZOTERO_PREF field or a
+hand-rolled customXml part.  It concatenates Word custom document
+properties named ZOTERO_PREF_1, ZOTERO_PREF_2, ... (255 chars each)
+from docProps/custom.xml.
 
-This script rewrites both thesis documents in place:
-- unique citationIDs
-- embedded CSL itemData only (no fake library URIs)
-- official fldChar field structure
-- ZOTERO_PREF document data
-- multi-paragraph ZOTERO_BIBL field
-- CustomXML document-data part as a second store
+Numeric citation item ids such as 1/2/3 also collide with real items
+in the user's Zotero library and make Refresh throw
+"Zotero 在更新文档时出错".
 """
 
 from __future__ import annotations
@@ -32,8 +25,7 @@ ROOT = Path(__file__).resolve().parents[1]
 STYLE_ID = "http://www.zotero.org/styles/china-national-standard-gb-t-7714-2015-numeric"
 SCHEMA = "https://github.com/citation-style-language/schema/raw/master/csl-citation.json"
 SESSION_ID = "LdThsZ01"
-ZOTERO_NS = "http://www.zotero.org/"
-ZOTERO_ITEM_GUID = "{A7C3E91B-4D28-4F60-9B11-2E8C6A1D7042}"
+MAX_PROPERTY_LENGTH = 255
 
 LIBRARY_PATH = ROOT / "Ludong_Thesis_Zotero_library.json"
 ACTIVE_DOC = ROOT / "鲁东大学学术学位论文_Zotero活动引用版.docx"
@@ -47,7 +39,6 @@ BIBL_ENTRIES = [
     "[5] 冯西桥. 核反应堆压力管道与压力容器的LBB分析[R]. 北京：清华大学核能技术设计研究院，1997.",
 ]
 
-# Display text -> (library id, locator, unique citationID)
 CITATION_SPECS = {
     "[1]": ("chen_dengyuan_2000", None, "cCiteA01"),
     "[2]": ("yuan_xunlai_2012", None, "cCiteA02"),
@@ -65,26 +56,26 @@ def load_library() -> dict[str, dict]:
 
 def document_data_xml() -> str:
     return (
-        f'<data data-version="3" zotero-version="6.0.37">'
+        '<data data-version="3" zotero-version="6.0.37">'
         f'<session id="{SESSION_ID}"/>'
         f'<style id="{STYLE_ID}" locale="zh-CN" hasBibliography="1" '
-        f'bibliographyStyleHasBeenSet="1"/>'
-        f"<prefs>"
-        f'<pref name="fieldType" value="Field"/>'
-        f'<pref name="storeReferences" value="true"/>'
-        f'<pref name="automaticJournalAbbreviations" value="true"/>'
-        f'<pref name="noteType" value="0"/>'
-        f"</prefs>"
-        f"</data>"
+        'bibliographyStyleHasBeenSet="1"/>'
+        "<prefs>"
+        '<pref name="fieldType" value="Field"/>'
+        '<pref name="storeReferences" value="true"/>'
+        '<pref name="automaticJournalAbbreviations" value="true"/>'
+        '<pref name="noteType" value="0"/>'
+        "</prefs>"
+        "</data>"
     )
 
 
 def citation_payload(library: dict[str, dict], display: str) -> dict:
     item_id, locator, citation_id = CITATION_SPECS[display]
     item = deepcopy(library[item_id])
-    cluster_id = list(library).index(item_id) + 1
-    item["id"] = cluster_id
-    citation_item: dict = {"id": cluster_id, "itemData": item}
+    # Keep the CSL id as a string so it cannot collide with numeric
+    # Zotero library item IDs (1, 2, 3, ...).
+    citation_item: dict = {"id": item_id, "itemData": item}
     if locator:
         citation_item["locator"] = locator
         citation_item["label"] = "page"
@@ -145,15 +136,6 @@ def bibliography_field_xml() -> str:
     return "".join(paragraphs)
 
 
-def pref_field_xml() -> str:
-    code = "ADDIN ZOTERO_PREF " + document_data_xml()
-    return (
-        field_code_xml(code)
-        + '<w:r><w:rPr><w:vanish/></w:rPr><w:t xml:space="preserve"></w:t></w:r>'
-        + '<w:r><w:fldChar w:fldCharType="end"/></w:r>'
-    )
-
-
 def replace_citations(xml: str, library: dict[str, dict], expected: int) -> str:
     patterns = [
         re.compile(
@@ -193,8 +175,7 @@ def replace_bibliography(xml: str) -> str:
     idx = xml.find(token)
     if idx >= 0:
         para_start = xml.rfind("<w:p>", 0, idx)
-        end_token = '<w:fldChar w:fldCharType="end"/>'
-        end = xml.find(end_token, idx)
+        end = xml.find('<w:fldChar w:fldCharType="end"/>', idx)
         if para_start < 0 or end < 0:
             raise RuntimeError("Failed to locate existing bibliography field bounds")
         end = xml.find("</w:p>", end)
@@ -215,69 +196,73 @@ def replace_bibliography(xml: str) -> str:
     return xml.replace(old, bibliography_field_xml(), 1)
 
 
-def insert_pref_field(xml: str) -> str:
-    marker = "<w:body>"
-    if marker not in xml:
-        raise RuntimeError("document body not found")
-    if "ZOTERO_PREF" in xml:
+def strip_pref_field(xml: str) -> str:
+    """Remove the unused body-level ZOTERO_PREF field from earlier repairs."""
+    pattern = re.compile(
+        r"<w:p>(?:(?!</w:p>).)*ZOTERO_PREF(?:(?!</w:p>).)*</w:p>",
+        re.DOTALL,
+    )
+    return pattern.sub("", xml, count=1)
+
+
+def custom_properties_xml() -> str:
+    data = document_data_xml()
+    chunks = [
+        data[i : i + MAX_PROPERTY_LENGTH]
+        for i in range(0, len(data), MAX_PROPERTY_LENGTH)
+    ]
+    properties = []
+    for index, chunk in enumerate(chunks, start=1):
+        pid = index + 1  # pid 1 is reserved
+        properties.append(
+            f'<property fmtid="{{D5CDD505-2E9C-101B-9397-08002B2CF9AE}}" '
+            f'pid="{pid}" name="ZOTERO_PREF_{index}">'
+            f"<vt:lpwstr>{escape(chunk)}</vt:lpwstr>"
+            f"</property>"
+        )
+    return (
+        '<?xml version="1.0" encoding="UTF-8" standalone="yes"?>\n'
+        '<Properties xmlns="http://schemas.openxmlformats.org/officeDocument/2006/custom-properties" '
+        'xmlns:vt="http://schemas.openxmlformats.org/officeDocument/2006/docPropsVTypes">'
+        + "".join(properties)
+        + "</Properties>\n"
+    )
+
+
+def patch_package_rels(xml: str) -> str:
+    rel_type = "http://schemas.openxmlformats.org/officeDocument/2006/relationships/custom-properties"
+    if rel_type in xml:
         return xml
-    pref_para = f"<w:p>{pref_field_xml()}</w:p>"
-    return xml.replace(marker, marker + pref_para, 1)
-
-
-def custom_xml_parts() -> dict[str, str]:
-    data = (
-        '<?xml version="1.0" encoding="UTF-8" standalone="yes"?>\n'
-        f'<zotero:data xmlns:zotero="{ZOTERO_NS}">'
-        f"{document_data_xml()}"
-        "</zotero:data>\n"
+    extra = (
+        '<Relationship Id="rIdZoteroPref" '
+        f'Type="{rel_type}" '
+        'Target="docProps/custom.xml"/>'
     )
-    props = (
-        '<?xml version="1.0" encoding="UTF-8" standalone="yes"?>\n'
-        '<ds:datastoreItem xmlns:ds="http://schemas.openxmlformats.org/officeDocument/2006/customXml" '
-        f'ds:itemID="{ZOTERO_ITEM_GUID}">\n'
-        "  <ds:schemaRefs>\n"
-        f'    <ds:schemaRef ds:uri="{ZOTERO_NS}"/>\n'
-        "  </ds:schemaRefs>\n"
-        "</ds:datastoreItem>\n"
-    )
-    rels = (
-        '<?xml version="1.0" encoding="UTF-8" standalone="yes"?>\n'
-        '<Relationships xmlns="http://schemas.openxmlformats.org/package/2006/relationships">'
-        '<Relationship Id="rId1" '
-        'Type="http://schemas.openxmlformats.org/officeDocument/2006/relationships/customXmlProps" '
-        'Target="itemProps2.xml"/>'
-        "</Relationships>"
-    )
-    return {
-        "customXml/item2.xml": data,
-        "customXml/itemProps2.xml": props,
-        "customXml/_rels/item2.xml.rels": rels,
-    }
+    return xml.replace("</Relationships>", extra + "</Relationships>", 1)
 
 
 def patch_content_types(xml: str) -> str:
-    needle = '<Override PartName="/customXml/itemProps1.xml"'
-    extra = (
-        '<Override PartName="/customXml/itemProps2.xml" '
-        'ContentType="application/vnd.openxmlformats-officedocument.customXmlProperties+xml"/>'
+    xml = re.sub(
+        r'<Override PartName="/customXml/itemProps2.xml"[^/]*/>',
+        "",
+        xml,
     )
-    if "itemProps2.xml" in xml:
-        return xml
-    if needle not in xml:
-        raise RuntimeError("[Content_Types].xml missing itemProps1 override")
-    return xml.replace(needle, extra + needle, 1)
+    if 'PartName="/docProps/custom.xml"' not in xml:
+        extra = (
+            '<Override PartName="/docProps/custom.xml" '
+            'ContentType="application/vnd.openxmlformats-officedocument.custom-properties+xml"/>'
+        )
+        xml = xml.replace("</Types>", extra + "</Types>", 1)
+    return xml
 
 
 def patch_document_rels(xml: str) -> str:
-    if "customXml/item2.xml" in xml:
-        return xml
-    extra = (
+    return xml.replace(
         '<Relationship Id="rIdZoteroData" '
         'Type="http://schemas.openxmlformats.org/officeDocument/2006/relationships/customXml" '
-        'Target="../customXml/item2.xml"/>'
+        'Target="../customXml/item2.xml"/>',
+        "",
     )
-    return xml.replace("</Relationships>", extra + "</Relationships>", 1)
 
 
 def rewrite_docx(path: Path, mutate_document_xml) -> None:
@@ -287,28 +272,38 @@ def rewrite_docx(path: Path, mutate_document_xml) -> None:
 
     document_xml = parts["word/document.xml"].decode("utf-8")
     document_xml = mutate_document_xml(document_xml)
-    document_xml = insert_pref_field(document_xml)
+    document_xml = strip_pref_field(document_xml)
     parts["word/document.xml"] = document_xml.encode("utf-8")
 
     parts["[Content_Types].xml"] = patch_content_types(
         parts["[Content_Types].xml"].decode("utf-8")
     ).encode("utf-8")
+    parts["_rels/.rels"] = patch_package_rels(
+        parts["_rels/.rels"].decode("utf-8")
+    ).encode("utf-8")
     parts["word/_rels/document.xml.rels"] = patch_document_rels(
         parts["word/_rels/document.xml.rels"].decode("utf-8")
     ).encode("utf-8")
-    for name, content in custom_xml_parts().items():
-        parts[name] = content.encode("utf-8")
+    parts["docProps/custom.xml"] = custom_properties_xml().encode("utf-8")
+
+    drop = {
+        "customXml/item2.xml",
+        "customXml/itemProps2.xml",
+        "customXml/_rels/item2.xml.rels",
+    }
 
     buffer = BytesIO()
     with zipfile.ZipFile(buffer, "w", compression=zipfile.ZIP_DEFLATED) as zout:
         written = set()
         for info in infos:
+            if info.filename in drop:
+                continue
             new_info = zipfile.ZipInfo(filename=info.filename, date_time=info.date_time)
             new_info.compress_type = zipfile.ZIP_DEFLATED
             zout.writestr(new_info, parts[info.filename])
             written.add(info.filename)
         for name, content in parts.items():
-            if name in written:
+            if name in written or name in drop:
                 continue
             zout.writestr(name, content)
     path.write_bytes(buffer.getvalue())

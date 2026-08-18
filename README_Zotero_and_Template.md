@@ -35,7 +35,7 @@ Zotero 刷新文档时必须能在本地找到 CSL 样式。如果样式未安�
 4. 打开 Word（确保已安装 Zotero Word 插件），再打开 **`鲁东大学学术学位论文_Zotero活动引用版.docx`**；
 5. 在 Word 顶部功能区点击 **Zotero → Refresh**。正文引用会保持 `[1]`、`[2]` 上标，文末参考文献由活动域重新生成。
 
-文档已写入完整的 `ZOTERO_PREF` 文档数据，并把每条引用的 CSL 元数据嵌在域代码中（不再使用伪造的 `ITEM-1` 库内 URI）。因此 Refresh 不再需要先弹出“文档首选项 / 条目不在文库中”对话框。
+文档已把 Zotero 文档数据写进 Word 自定义属性 `ZOTERO_PREF_1`（这是 Windows 插件真正读取的位置），并把每条引用的 CSL 元数据嵌在域代码中。不要使用旧版带 `ITEM-1` URI 或正文 `ZOTERO_PREF` 域的文件。
 
 若仍要手动确认样式：点击 **Document Preferences（文档首选项）**，选择 **`China National Standard GB/T 7714-2015 (numeric, 中文)`**。
 
@@ -47,10 +47,11 @@ Zotero 刷新文档时必须能在本地找到 CSL 样式。如果样式未安�
 ### 4. 若 Refresh 一直转圈
 按下面顺序排查，几乎都能一次恢复：
 
-1. **先启动 Zotero 再开 Word**。插件在 Word 里点 Refresh 时要连本地 Zotero；Zotero 没开时会一直显示 Refreshing。
-2. **确认已安装上面的 CSL 文件**。不要让 Zotero 去 `zotero.org` 临时下载样式。
-3. **不要使用旧版“伪造 URI”文档**。如果域代码里还能看到 `http://zotero.org/users/local/items/ITEM-1` 或重复的 `citationID`，请重新打开本仓库中的活动引用版。
-4. 如果对话框被 Word 挡住，用 Alt+Tab 切到 Zotero，关掉“条目不在文库中 / 选择样式”提示后再 Refresh。
+1. **先完全退出 Word**（任务栏里也不要留着旧文档），再 `git pull` 打开仓库里的新文件。失败过一次的旧窗口不要保存。
+2. **先启动 Zotero 再开 Word**。插件在 Word 里点 Refresh 时要连本地 Zotero。
+3. **确认已安装上面的 CSL 文件**。不要让 Zotero 去 `zotero.org` 临时下载样式。
+4. 如果同时装了 EndNote，先关掉 EndNote 再 Refresh，两个插件抢同一篇文档会报“更新文档时出错”。
+5. 如果对话框被 Word 挡住，用 Alt+Tab 切到 Zotero。
 
 ---
 
