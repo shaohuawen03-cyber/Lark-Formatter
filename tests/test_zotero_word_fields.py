@@ -77,11 +77,11 @@ class ZoteroWordFieldTests(unittest.TestCase):
         self.assertNotIn("ITEM-1", xml)
         self.assertIsNone(FAKE_URI.search(xml))
 
-        pref = _pref_property_text(path)
-        self.assertIn('data-version="3"', pref)
-        self.assertIn("china-national-standard-gb-t-7714-2015-numeric", pref)
-        self.assertIn('name="storeReferences" value="true"', pref)
-        self.assertIn('name="fieldType" value="Field"', pref)
+        pref = json.loads(_pref_property_text(path))
+        self.assertEqual(pref["dataVersion"], 3)
+        self.assertIn("china-national-standard-gb-t-7714-2015-numeric", pref["style"]["styleID"])
+        self.assertTrue(pref["prefs"]["storeReferences"])
+        self.assertEqual(pref["prefs"]["fieldType"], "Field")
 
         payloads = _json_payloads(xml)
         self.assertGreaterEqual(len(payloads), min_citations)
@@ -92,7 +92,7 @@ class ZoteroWordFieldTests(unittest.TestCase):
             self.assertNotIn("style", payload["properties"])
             self.assertEqual(payload["properties"]["noteIndex"], 0)
             for cited in payload["citationItems"]:
-                self.assertNotIn("uris", cited)
+                self.assertEqual(cited.get("uris"), [])
                 self.assertIsInstance(cited["id"], str)
                 self.assertTrue(cited["itemData"]["title"])
                 self.assertEqual(cited["id"], cited["itemData"]["id"])

@@ -35,7 +35,7 @@ Zotero 刷新文档时必须能在本地找到 CSL 样式。如果样式未安�
 4. 打开 Word（确保已安装 Zotero Word 插件），再打开 **`鲁东大学学术学位论文_Zotero活动引用版.docx`**；
 5. 在 Word 顶部功能区点击 **Zotero → Refresh**。正文引用会保持 `[1]`、`[2]` 上标，文末参考文献由活动域重新生成。
 
-文档已把 Zotero 文档数据写进 Word 自定义属性 `ZOTERO_PREF_1`（这是 Windows 插件真正读取的位置），并把每条引用的 CSL 元数据嵌在域代码中。不要使用旧版带 `ITEM-1` URI 或正文 `ZOTERO_PREF` 域的文件。
+文档已把 Zotero 文档数据写进 Word 自定义属性 `ZOTERO_PREF_1`（Windows 插件真正读取的位置），引用域里带完整 `itemData` 和空的 `uris: []`。缺少 `uris` 时 Zotero 9 会在刷新时直接崩溃。
 
 若仍要手动确认样式：点击 **Document Preferences（文档首选项）**，选择 **`China National Standard GB/T 7714-2015 (numeric, 中文)`**。
 

@@ -55,27 +55,52 @@ def load_library() -> dict[str, dict]:
 
 
 def document_data_xml() -> str:
-    return (
-        '<data data-version="3" zotero-version="6.0.37">'
-        f'<session id="{SESSION_ID}"/>'
-        f'<style id="{STYLE_ID}" locale="zh-CN" hasBibliography="1" '
-        'bibliographyStyleHasBeenSet="1"/>'
-        "<prefs>"
-        '<pref name="fieldType" value="Field"/>'
-        '<pref name="storeReferences" value="true"/>'
-        '<pref name="automaticJournalAbbreviations" value="true"/>'
-        '<pref name="noteType" value="0"/>'
-        "</prefs>"
-        "</data>"
+    # JSON first: Zotero 9 tries JSON.parse() before XML, and JSON avoids
+    # Word custom-property entity-escaping of "<data ...>".
+    return json.dumps(
+        {
+            "style": {
+                "styleID": STYLE_ID,
+                "locale": "zh-CN",
+                "hasBibliography": True,
+                "bibliographyStyleHasBeenSet": True,
+            },
+            "prefs": {
+                "fieldType": "Field",
+                "storeReferences": True,
+                "automaticJournalAbbreviations": True,
+                "noteType": 0,
+            },
+            "sessionID": SESSION_ID,
+            "zoteroVersion": "9.0.0",
+            "dataVersion": 3,
+        },
+        ensure_ascii=False,
+        separators=(",", ":"),
     )
+
+
+def _clean_names(people: list[dict] | None) -> list[dict] | None:
+    if not people:
+        return people
+    cleaned = []
+    for person in people:
+        entry = {key: value for key, value in person.items() if value not in ("", None)}
+        if entry:
+            cleaned.append(entry)
+    return cleaned or people
 
 
 def citation_payload(library: dict[str, dict], display: str) -> dict:
     item_id, locator, citation_id = CITATION_SPECS[display]
     item = deepcopy(library[item_id])
-    # Keep the CSL id as a string so it cannot collide with numeric
-    # Zotero library item IDs (1, 2, 3, ...).
-    citation_item: dict = {"id": item_id, "itemData": item}
+    for key in ("author", "translator", "editor", "container-author"):
+        if key in item:
+            item[key] = _clean_names(item[key])
+    # uris MUST be an array. Zotero 9 does citationItem.uris.length when
+    # falling back to embedded itemData; a missing key throws and Word
+    # shows "Zotero 在更新文档时出错".
+    citation_item: dict = {"id": item_id, "uris": [], "itemData": item}
     if locator:
         citation_item["locator"] = locator
         citation_item["label"] = "page"
