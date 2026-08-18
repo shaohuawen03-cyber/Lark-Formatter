@@ -43,6 +43,11 @@ python main.py        # 启动时会用新的内置模板重新生成
 
 ## 三、测试命令
 
+> 最简验收：只用之前那份测试文档跑第 3、4 步（端到端 + 体检）通过，就说明功能正常。
+> `tests/` 目录被 `.gitignore` 整体忽略，`tests/test_zotero_compat.py` 已在提交 `411e382` 中强制加入，
+> 若提示“file or directory not found”，`git pull` 一次即可。
+
+
 ```powershell
 conda activate lark
 cd D:\你的路径\Lark-Formatter
