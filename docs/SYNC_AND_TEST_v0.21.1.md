@@ -96,3 +96,41 @@ python main.py
 1. 先在 Zotero：编辑 → 设置 → 引用 → 样式 → `+` → 选导出的 `.csl`；
 2. 先开 Zotero，再用 Word 打开 `xxx_new.docx`；
 3. 点 `Zotero → Refresh`，正文 `[1]` 上标与文末参考文献应正常重建，不再报错。
+
+---
+
+## 四、GUI（`python main.py`）按老测试文档跑通的步骤
+
+沙箱里已用无头 Qt 完整走过一遍，结论：界面构建、导出按钮、开始排版、Zotero 修复全部正常。
+你在本机按下面顺序点一遍即可复现：
+
+```powershell
+conda activate lark
+cd E:\0writing\Lark-Formatter
+python main.py
+```
+
+1. **模板**：`场景/模板` 选择 **默认格式**（若之前删过 `templates\default_format.json`，
+   启动时会自动用新的内置模板重新播种，里面已带 `zotero` 段）。
+2. **文档**：`浏览...` 选之前那份测试文档，例如
+   `鲁东大学学术学位论文_Zotero活动引用版.docx`（建议先复制一份 `test_zotero_run.docx` 再选）。
+3. **实验室面板**：确认底部出现 **Zotero 活动引用兼容**，默认已勾选；
+   「强制写入 GB/T 7714 引用样式」保持不勾（除非要强制换样式）。
+4. **可选**：点 **导出 Zotero 模板与样式...**，选一个空文件夹，应导出 4 个文件：
+   `鲁东大学学术学位论文_Zotero联动模板.docx`、`china-national-standard-gb-t-7714-2015-numeric.csl`、
+   `Ludong_Thesis_Zotero_library.json`、`.ris`。日志出现 `已导出 Zotero 模板与样式到：…`。
+5. **点「开始排版」**，日志里应依次看到：
+   ```
+   Zotero 活动引用兼容: 开启（强制写入 GB/T 7714 样式=否）
+   开始排版...
+   ...
+   排版完成/部分成功! 共 N 项修改
+   ```
+6. **检查成品** `xxx_new.docx`：
+   ```powershell
+   python -c "import json,re,zipfile; z=zipfile.ZipFile('test_zotero_run_new.docx'); x=z.read('word/document.xml').decode(); p=[json.loads(t[t.find('{'):]) for t in re.findall(r'<w:instrText[^>]*>(.*?)</w:instrText>',x,re.S) if 'CSL_CITATION' in t]; print('引用域', len(p), '| fldSimple', 'fldSimple' in x, '| uris ok', all(i.get('uris')==[] for q in p for i in q['citationItems']), '| prefs', 'docProps/custom.xml' in z.namelist())"
+   ```
+   期望：`引用域 5 | fldSimple False | uris ok True | prefs True`
+   （JSON 报告 `xxx_排版附件\xxx_报告.json` 里也会有一条 `zotero_live_citation` 记录。）
+7. **Word 端**：先开 Zotero（确认已安装 GB/T 7714-2015 numeric 样式）→ 再用 Word 打开成品 →
+   `Zotero → Refresh`，正文 `[1]`–`[5]` 上标与文末参考文献正常重建即为全流程通过。
