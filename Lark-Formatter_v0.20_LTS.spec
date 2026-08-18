@@ -2,6 +2,7 @@
 
 datas = [
     ("src/scene/presets", "templates"),
+    ("src/resources", "src/resources"),
     ("src/ui/themes", "src/ui/themes"),
     ("src/ui/icons", "src/ui/icons"),
 ]

@@ -19,7 +19,7 @@ from src.scene.schema import (
     EnforcementConfig, HeadingRiskGuardConfig,
     StyleConfig, OutputConfig,
     FormatScopeConfig, TocConfig, CaptionConfig, ChemTypographyConfig, MdCleanupConfig,
-    WhitespaceNormalizeConfig, CitationLinkConfig,
+    WhitespaceNormalizeConfig, CitationLinkConfig, ZoteroConfig,
     FormulaConvertConfig, FormulaToTableConfig, EquationTableFormatConfig, FormulaStyleConfig,
     FormulaTableConfig,
     REMOVED_NUMBER_CORE_STYLE_IDS,
@@ -1485,6 +1485,35 @@ def _build_scene_config(
                 cite.get(
                     "superscript_outer_page_numbers",
                     default_cite.superscript_outer_page_numbers,
+                )
+            ),
+        )
+
+    if "zotero" in payload:
+        raw_zotero = payload["zotero"]
+        if not isinstance(raw_zotero, dict):
+            raw_zotero = {}
+        default_zotero = ZoteroConfig()
+        config.zotero = ZoteroConfig(
+            enabled=bool(raw_zotero.get("enabled", default_zotero.enabled)),
+            style_id=str(
+                raw_zotero.get("style_id", default_zotero.style_id)
+            ).strip() or default_zotero.style_id,
+            locale=str(
+                raw_zotero.get("locale", default_zotero.locale)
+            ).strip() or default_zotero.locale,
+            store_references=bool(
+                raw_zotero.get("store_references", default_zotero.store_references)
+            ),
+            write_document_prefs=bool(
+                raw_zotero.get(
+                    "write_document_prefs", default_zotero.write_document_prefs
+                )
+            ),
+            overwrite_document_prefs=bool(
+                raw_zotero.get(
+                    "overwrite_document_prefs",
+                    default_zotero.overwrite_document_prefs,
                 )
             ),
         )

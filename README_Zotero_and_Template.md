@@ -67,3 +67,41 @@ git pull origin arena/01a00f8c-lark-formatter --no-rebase
 conda activate lark
 python main.py
 ```
+
+---
+
+## 四、已并入 Lark-Formatter 主程序（v0.21.1 起）
+
+上面这套「让 Word 里的 Zotero 能正常 Refresh」的修复，**已经变成软件的默认功能**，不再需要手动跑脚本。
+
+### 1. 排版时自动修复（默认开启）
+`默认格式` 模板新增 `zotero` 配置段，排版结束保存 `xxx_new.docx` 时会自动：
+
+- 给每个引用域的 `citationItem` 补上 `uris: []`；
+- 把 `fldSimple` 形式的 Zotero 域改写成插件认识的复杂域；
+- 把文档首选项写进 Word 自定义文档属性 `ZOTERO_PREF_1/2/...`；
+- 把数字引用 id 转成字符串，避免与本地文献库撞车；
+- 清理早期写入的无效 `customXml` 部件。
+
+文档里没有 Zotero 域时会自动跳过，一个字节都不会改。
+
+界面位置：**实验室 → Zotero 活动引用兼容**。
+子选项「强制写入 GB/T 7714 引用样式」会覆盖文档中已有的引用样式设置（默认关闭）。
+
+### 2. 内置模板与样式，一键导出
+点击 **实验室 → 导出 Zotero 模板与样式...**，选择目录后会导出：
+
+- `鲁东大学学术学位论文_Zotero联动模板.docx`
+- `china-national-standard-gb-t-7714-2015-numeric.csl`
+- `Ludong_Thesis_Zotero_library.json` / `.ris`
+
+导出后按第二节的流程安装 CSL 样式并打开模板即可。
+
+### 3. 命令行同样可用
+```powershell
+# 修复任意 docx（可一次传多个文件）
+python -m src.docx_io.zotero_fields 论文_new.docx
+
+# 顺便把引用样式强制切换为 GB/T 7714-2015
+python -m src.docx_io.zotero_fields 论文_new.docx --force-prefs
+```

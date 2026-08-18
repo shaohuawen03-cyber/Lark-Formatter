@@ -15,7 +15,8 @@
     "md_cleanup": true,
     "whitespace_normalize": true,
     "citation_link_restore": true,
-    "chem_typography_restore": true
+    "chem_typography_restore": true,
+    "zotero_live_citation": true
   },
   "available_sections": [
     "body",
@@ -911,6 +912,14 @@
     "enabled": true,
     "auto_number_reference_entries": true,
     "superscript_outer_page_numbers": true
+  },
+  "zotero": {
+    "enabled": true,
+    "style_id": "http://www.zotero.org/styles/china-national-standard-gb-t-7714-2015-numeric",
+    "locale": "zh-CN",
+    "store_references": true,
+    "write_document_prefs": true,
+    "overwrite_document_prefs": false
   },
   "formula_convert": {
     "enabled": true,

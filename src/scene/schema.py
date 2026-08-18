@@ -568,6 +568,28 @@ class CitationLinkConfig:
 
 
 @dataclass
+class ZoteroConfig:
+    """Zotero 活动引用（Live Citation）兼容配置。
+
+    默认开启：排版完成后自动修复成品 DOCX 里的 Zotero 域，保证在 Word 中
+    点击 ``Zotero → Refresh`` 不会报错。文档不含 Zotero 域时自动跳过。
+    """
+
+    enabled: bool = True
+    # 首次写入文档首选项时使用的 CSL 样式（GB/T 7714-2015 顺序编码制）
+    style_id: str = (
+        "http://www.zotero.org/styles/china-national-standard-gb-t-7714-2015-numeric"
+    )
+    locale: str = "zh-CN"
+    # 把文献元数据内嵌进域代码，换电脑打开也能刷新
+    store_references: bool = True
+    # 缺少 ZOTERO_PREF_n 自定义文档属性时自动补写
+    write_document_prefs: bool = True
+    # 覆盖文档中已有的首选项（会强制切换成上面的引用样式）
+    overwrite_document_prefs: bool = False
+
+
+@dataclass
 class FormulaConvertConfig:
     """Formula recognition and conversion configuration."""
     enabled: bool = False
@@ -661,6 +683,7 @@ class SceneConfig:
         "md_cleanup": True,
         "whitespace_normalize": True,
         "citation_link_restore": True,
+        "zotero_live_citation": True,
         "chem_typography_restore": True,
     })
     available_sections: list[str] = field(default_factory=lambda: [
@@ -677,6 +700,7 @@ class SceneConfig:
     md_cleanup: MdCleanupConfig = field(default_factory=MdCleanupConfig)
     whitespace_normalize: WhitespaceNormalizeConfig = field(default_factory=WhitespaceNormalizeConfig)
     citation_link: CitationLinkConfig = field(default_factory=CitationLinkConfig)
+    zotero: ZoteroConfig = field(default_factory=ZoteroConfig)
     formula_convert: FormulaConvertConfig = field(default_factory=FormulaConvertConfig)
     formula_to_table: FormulaToTableConfig = field(default_factory=FormulaToTableConfig)
     equation_table_format: EquationTableFormatConfig = field(default_factory=EquationTableFormatConfig)

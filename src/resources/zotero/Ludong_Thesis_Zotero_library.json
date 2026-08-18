@@ -1,0 +1,136 @@
+[
+  {
+    "id": "chen_dengyuan_2000",
+    "type": "book",
+    "title": "国史旧闻：第1卷",
+    "author": [
+      {
+        "family": "陈",
+        "given": "登原"
+      }
+    ],
+    "publisher": "中华书局",
+    "publisher-place": "北京",
+    "issued": {
+      "date-parts": [
+        [
+          2000
+        ]
+      ]
+    },
+    "page": "29"
+  },
+  {
+    "id": "yuan_xunlai_2012",
+    "type": "article-journal",
+    "title": "蓝田生物群：一个认识多细胞生物起源和早期演化的新窗口",
+    "author": [
+      {
+        "family": "袁",
+        "given": "训来"
+      },
+      {
+        "family": "陈",
+        "given": "哲"
+      },
+      {
+        "family": "肖",
+        "given": "书海"
+      }
+    ],
+    "container-title": "科学通报",
+    "volume": "55",
+    "issue": "34",
+    "page": "3219",
+    "issued": {
+      "date-parts": [
+        [
+          2012
+        ]
+      ]
+    }
+  },
+  {
+    "id": "harrison_waldron_2012",
+    "type": "book",
+    "title": "经济数学与金融数学",
+    "author": [
+      {
+        "family": "哈里森",
+        "given": ""
+      },
+      {
+        "family": "沃尔德伦",
+        "given": ""
+      }
+    ],
+    "translator": [
+      {
+        "family": "谢",
+        "given": "远涛"
+      }
+    ],
+    "publisher": "中国人民大学出版社",
+    "publisher-place": "北京",
+    "issued": {
+      "date-parts": [
+        [
+          2012
+        ]
+      ]
+    },
+    "page": "235-236"
+  },
+  {
+    "id": "marx_2013",
+    "type": "chapter",
+    "title": "政治经济学批判",
+    "author": [
+      {
+        "family": "马克思",
+        "given": ""
+      }
+    ],
+    "container-author": [
+      {
+        "family": "马克思",
+        "given": ""
+      },
+      {
+        "family": "恩格斯",
+        "given": ""
+      }
+    ],
+    "container-title": "马克思恩格斯全集：第35卷",
+    "publisher": "人民出版社",
+    "publisher-place": "北京",
+    "issued": {
+      "date-parts": [
+        [
+          2013
+        ]
+      ]
+    },
+    "page": "302"
+  },
+  {
+    "id": "feng_xiqiao_1997",
+    "type": "report",
+    "title": "核反应堆压力管道与压力容器的LBB分析",
+    "author": [
+      {
+        "family": "冯",
+        "given": "西桥"
+      }
+    ],
+    "publisher": "清华大学核能技术设计研究院",
+    "publisher-place": "北京",
+    "issued": {
+      "date-parts": [
+        [
+          1997
+        ]
+      ]
+    }
+  }
+]

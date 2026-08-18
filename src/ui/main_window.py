@@ -5799,6 +5799,47 @@ class MainWindow(QMainWindow):
         self._citation_link_row.setFixedHeight(36)
         outer.addWidget(self._citation_link_row)
 
+        self._lab_sep_zotero = QFrame()
+        self._lab_sep_zotero.setFrameShape(QFrame.HLine)
+        self._lab_sep_zotero.setStyleSheet("color: #e1e4e8; background-color: #e1e4e8;")
+        outer.addWidget(self._lab_sep_zotero)
+
+        self._zotero_row = QWidget()
+        zotero_row = QHBoxLayout(self._zotero_row)
+        zotero_row.setContentsMargins(0, 0, 0, 0)
+        self._zotero_check = QCheckBox("Zotero 活动引用兼容")
+        self._zotero_check.setChecked(True)
+        self._zotero_check.setToolTip(
+            "排版完成后自动修复成品文档中的 Zotero 活动引用域（补齐 uris、写入 "
+            "ZOTERO_PREF 文档首选项、复杂域化），确保在 Word 中点击 Zotero → Refresh "
+            "不再报错。文档不含 Zotero 域时自动跳过。"
+        )
+        zotero_row.addWidget(self._zotero_check)
+        zotero_row.addSpacing(24)
+        self._zotero_prefs_label = QLabel("增强选项:")
+        zotero_row.addWidget(self._zotero_prefs_label)
+        self._zotero_force_prefs_check = QCheckBox("强制写入 GB/T 7714 引用样式")
+        self._zotero_force_prefs_check.setChecked(False)
+        self._zotero_force_prefs_check.setToolTip(
+            "覆盖文档中已有的 Zotero 文档首选项，把引用样式强制切换为 "
+            "China National Standard GB/T 7714-2015 (numeric)。"
+        )
+        zotero_row.addWidget(self._zotero_force_prefs_check)
+        self._zotero_export_btn = QPushButton("导出 Zotero 模板与样式...")
+        self._zotero_export_btn.setToolTip(
+            "把内置的 Zotero 联动论文模板、GB/T 7714-2015 CSL 样式与示例文献库导出到指定文件夹。"
+        )
+        self._zotero_export_btn.clicked.connect(self._on_export_zotero_assets)
+        zotero_row.addWidget(self._zotero_export_btn)
+        zotero_row.addStretch(1)
+        self._lab_help_zotero_btn = self._build_lab_help_button("zotero")
+        zotero_row.addWidget(self._lab_help_zotero_btn)
+        self._zotero_row.setFixedHeight(36)
+        outer.addWidget(self._zotero_row)
+
+        self._zotero_check.toggled.connect(self._on_zotero_toggled)
+        self._on_zotero_toggled(self._zotero_check.isChecked())
+
         self._lab_sep1 = QFrame()
         self._lab_sep1.setFrameShape(QFrame.HLine)
         self._lab_sep1.setStyleSheet("color: #e1e4e8; background-color: #e1e4e8;")
@@ -5969,6 +6010,12 @@ class MainWindow(QMainWindow):
                 "feature": "实际功能：将正文中的编号引用转换为可跳转域，并支持参考文献序号自动纠偏",
                 "note": "注意事项：主要识别常见编号引用格式，已有域代码内容会自动跳过",
             },
+            "zotero": {
+                "title": "Zotero 活动引用兼容 使用须知",
+                "status": "开发状态：已完成并通过回归测试（v0.21）",
+                "feature": "实际功能：排版完成后自动修复成品 DOCX 的 Zotero 活动引用域——补齐 citationItem.uris、把 fldSimple 域改为复杂域、写入 ZOTERO_PREF_n 文档首选项、清理无效 customXml 部件，使 Word 中的 Zotero → Refresh 能正常刷新",
+                "note": "注意事项：文档不含 Zotero 域时自动跳过；刷新前请先在 Zotero 中安装 GB/T 7714-2015 CSL 样式（可用右侧“导出 Zotero 模板与样式”一键取得）",
+            },
             "chem_typography": {
                 "title": "自动恢复上下角标 使用须知",
                 "status": "开发状态：已完成并通过回归测试",
@@ -6133,6 +6180,13 @@ class MainWindow(QMainWindow):
             self._citation_outer_page_sup_check.setChecked(
                 bool(getattr(cite_cfg, "superscript_outer_page_numbers", False))
             )
+        zotero_cfg = getattr(self._config, "zotero", None)
+        if zotero_cfg is not None:
+            self._zotero_check.setChecked(bool(getattr(zotero_cfg, "enabled", True)))
+            self._zotero_force_prefs_check.setChecked(
+                bool(getattr(zotero_cfg, "overwrite_document_prefs", False))
+            )
+        self._on_zotero_toggled(self._zotero_check.isChecked())
         if ws_cfg is not None:
             self._ws_opt_space_variants.setChecked(
                 bool(getattr(ws_cfg, "normalize_space_variants", True))
@@ -6286,6 +6340,41 @@ class MainWindow(QMainWindow):
         enable_output = bool(checked) and self._formula_management_check.isChecked()
         self._formula_output_label.setEnabled(enable_output)
         self._formula_output_mode_combo.setEnabled(enable_output)
+
+    def _on_zotero_toggled(self, checked: bool):
+        self._zotero_prefs_label.setVisible(checked)
+        self._zotero_force_prefs_check.setVisible(checked)
+        self._zotero_force_prefs_check.setEnabled(checked)
+
+    def _on_export_zotero_assets(self):
+        """把内置 Zotero 模板 / CSL 样式 / 示例文献库导出到用户选择的目录。"""
+        from src.resources import export_zotero_assets, zotero_assets
+
+        if not zotero_assets():
+            QMessageBox.warning(self, "导出失败", "未找到内置 Zotero 资源文件。")
+            return
+        start_dir = ""
+        if getattr(self, "_doc_path", ""):
+            start_dir = str(Path(self._doc_path).parent)
+        target = QFileDialog.getExistingDirectory(
+            self, "选择导出目录", start_dir or str(Path.home())
+        )
+        if not target:
+            return
+        try:
+            copied = export_zotero_assets(target)
+        except OSError as exc:
+            QMessageBox.critical(self, "导出失败", f"复制文件时出错：{exc}")
+            return
+        names = "\n".join(f"· {path.name}" for path in copied)
+        self._log(f"已导出 Zotero 模板与样式到：{target}")
+        QMessageBox.information(
+            self,
+            "导出完成",
+            f"已导出到：\n{target}\n\n{names}\n\n"
+            "使用提示：先在 Zotero 中通过“编辑 → 设置 → 引用 → 样式 → +”安装 .csl 样式，"
+            "再用 Word 打开模板文档并点击 Zotero → Refresh。",
+        )
 
     def _on_citation_link_toggled(self, checked: bool):
         self._citation_ref_auto_number_check.setVisible(checked)
@@ -6945,6 +7034,13 @@ class MainWindow(QMainWindow):
             self._citation_outer_page_sup_check.setChecked(
                 bool(getattr(cite_cfg, "superscript_outer_page_numbers", False))
             )
+        zotero_cfg = getattr(cfg, "zotero", None)
+        if zotero_cfg is not None:
+            self._zotero_check.setChecked(bool(getattr(zotero_cfg, "enabled", True)))
+            self._zotero_force_prefs_check.setChecked(
+                bool(getattr(zotero_cfg, "overwrite_document_prefs", False))
+            )
+        self._on_zotero_toggled(self._zotero_check.isChecked())
 
         self._header_check.setChecked(bool(getattr(cfg, "update_header", False)))
         self._pagenum_check.setChecked(bool(getattr(cfg, "update_page_number", False)))
@@ -7373,6 +7469,15 @@ class MainWindow(QMainWindow):
                 self._citation_ref_auto_number_check.isChecked()
             )
             citation_cfg.superscript_outer_page_numbers = self._citation_outer_page_sup_check.isChecked()
+
+        # Zotero 活动引用兼容
+        zotero_cfg = getattr(self._config, "zotero", None)
+        if zotero_cfg is not None:
+            has_zotero = caps.get("zotero_live_citation", True)
+            zotero_cfg.enabled = self._zotero_check.isChecked() if has_zotero else False
+            zotero_cfg.overwrite_document_prefs = (
+                self._zotero_force_prefs_check.isChecked()
+            )
 
         # 扩展选项
         toc_cfg = getattr(self._config, "toc", None)
@@ -8016,6 +8121,15 @@ class MainWindow(QMainWindow):
                 self._citation_outer_page_sup_check.isChecked()
             )
 
+        # Zotero 活动引用兼容
+        zotero_cfg = getattr(self._config, "zotero", None)
+        if zotero_cfg is not None:
+            has_zotero = caps.get("zotero_live_citation", True)
+            zotero_cfg.enabled = self._zotero_check.isChecked() if has_zotero else False
+            zotero_cfg.overwrite_document_prefs = (
+                self._zotero_force_prefs_check.isChecked()
+            )
+
         # 扩展选项
         toc_cfg = getattr(self._config, "toc", None)
         if toc_cfg is not None:
@@ -8099,6 +8213,13 @@ class MainWindow(QMainWindow):
                 "引用域关联子项: 参考文献自动编号纠偏={}，方括号外页码跟随上标={}".format(
                     "开启" if citation_cfg.auto_number_reference_entries else "关闭",
                     "开启" if citation_cfg.superscript_outer_page_numbers else "关闭"
+                )
+            )
+        zotero_run_cfg = getattr(self._config, "zotero", None)
+        if zotero_run_cfg is not None and getattr(zotero_run_cfg, "enabled", False):
+            self._log(
+                "Zotero 活动引用兼容: 开启（强制写入 GB/T 7714 样式={}）".format(
+                    "是" if zotero_run_cfg.overwrite_document_prefs else "否"
                 )
             )
         self._run_btn.setEnabled(False)

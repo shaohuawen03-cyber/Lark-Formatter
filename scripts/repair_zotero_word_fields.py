@@ -15,17 +15,24 @@ from __future__ import annotations
 
 import json
 import re
+import sys
 import zipfile
 from copy import deepcopy
 from io import BytesIO
 from pathlib import Path
 from xml.sax.saxutils import escape
 
+sys.path.insert(0, str(Path(__file__).resolve().parents[1]))
+
+from src.docx_io.zotero_fields import (  # noqa: E402
+    build_document_prefs,
+    custom_properties_xml as shared_custom_properties_xml,
+)
+
 ROOT = Path(__file__).resolve().parents[1]
 STYLE_ID = "http://www.zotero.org/styles/china-national-standard-gb-t-7714-2015-numeric"
 SCHEMA = "https://github.com/citation-style-language/schema/raw/master/csl-citation.json"
 SESSION_ID = "LdThsZ01"
-MAX_PROPERTY_LENGTH = 255
 
 LIBRARY_PATH = ROOT / "Ludong_Thesis_Zotero_library.json"
 ACTIVE_DOC = ROOT / "鲁东大学学术学位论文_Zotero活动引用版.docx"
@@ -55,28 +62,9 @@ def load_library() -> dict[str, dict]:
 
 
 def document_data_xml() -> str:
-    # JSON first: Zotero 9 tries JSON.parse() before XML, and JSON avoids
-    # Word custom-property entity-escaping of "<data ...>".
-    return json.dumps(
-        {
-            "style": {
-                "styleID": STYLE_ID,
-                "locale": "zh-CN",
-                "hasBibliography": True,
-                "bibliographyStyleHasBeenSet": True,
-            },
-            "prefs": {
-                "fieldType": "Field",
-                "storeReferences": True,
-                "automaticJournalAbbreviations": True,
-                "noteType": 0,
-            },
-            "sessionID": SESSION_ID,
-            "zoteroVersion": "9.0.0",
-            "dataVersion": 3,
-        },
-        ensure_ascii=False,
-        separators=(",", ":"),
+    """文档首选项串（与 :mod:`src.docx_io.zotero_fields` 共用同一实现）。"""
+    return build_document_prefs(
+        style_id=STYLE_ID, locale="zh-CN", session_id=SESSION_ID
     )
 
 
@@ -231,27 +219,7 @@ def strip_pref_field(xml: str) -> str:
 
 
 def custom_properties_xml() -> str:
-    data = document_data_xml()
-    chunks = [
-        data[i : i + MAX_PROPERTY_LENGTH]
-        for i in range(0, len(data), MAX_PROPERTY_LENGTH)
-    ]
-    properties = []
-    for index, chunk in enumerate(chunks, start=1):
-        pid = index + 1  # pid 1 is reserved
-        properties.append(
-            f'<property fmtid="{{D5CDD505-2E9C-101B-9397-08002B2CF9AE}}" '
-            f'pid="{pid}" name="ZOTERO_PREF_{index}">'
-            f"<vt:lpwstr>{escape(chunk)}</vt:lpwstr>"
-            f"</property>"
-        )
-    return (
-        '<?xml version="1.0" encoding="UTF-8" standalone="yes"?>\n'
-        '<Properties xmlns="http://schemas.openxmlformats.org/officeDocument/2006/custom-properties" '
-        'xmlns:vt="http://schemas.openxmlformats.org/officeDocument/2006/docPropsVTypes">'
-        + "".join(properties)
-        + "</Properties>\n"
-    )
+    return shared_custom_properties_xml(document_data_xml())
 
 
 def patch_package_rels(xml: str) -> str:

@@ -28,6 +28,7 @@ from src.engine.rules.md_cleanup import MdCleanupRule
 from src.engine.rules.toc_format import TocFormatRule, _normalize_toc_styles_in_doc
 from src.engine.rules.header_footer import HeaderFooterRule
 from src.engine.validation import ValidationRule
+from src.docx_io.zotero_fields import repair_docx_with_config
 from src.scene.manager import (
     _sync_citation_link_pipeline_switch,
     _sync_formula_pipeline_switch,
@@ -574,6 +575,7 @@ class Pipeline:
                 failure_reason=None,
             )
         if final_path:
+            self._apply_zotero_compat(final_path)
             self._record_docx_semantics(final_path, target="final_doc_semantics")
 
         if self._is_cancel_requested():
@@ -886,6 +888,7 @@ class Pipeline:
                     failure_reason=None,
                 )
             if final_path:
+                self._apply_zotero_compat(final_path)
                 self._record_docx_semantics(final_path, target="final_doc_semantics")
 
             if self._is_cancel_requested():
@@ -976,6 +979,43 @@ class Pipeline:
             return True, f"normalized_styles={normalized_styles}"
         except Exception as exc:
             return False, f"toc normalization failed: {exc}"
+
+    def _apply_zotero_compat(self, doc_path: str | None) -> None:
+        """保存成品后修复 Zotero 活动引用域，使其在 Word 中可正常 Refresh。
+
+        文档不含 Zotero 域时直接跳过；任何异常都不影响排版结果。
+        """
+        zotero_cfg = getattr(self.config, "zotero", None)
+        if not doc_path or zotero_cfg is None or not getattr(zotero_cfg, "enabled", False):
+            return
+        try:
+            report = repair_docx_with_config(doc_path, zotero_cfg)
+        except Exception as exc:  # pragma: no cover - 防御性兜底
+            self.tracker.record(
+                rule_name="pipeline",
+                target="zotero_live_citation",
+                section="references",
+                change_type="error",
+                before="",
+                after="",
+                paragraph_index=-1,
+                success=False,
+                failure_reason=str(exc),
+            )
+            return
+        if not report.has_fields:
+            return
+        self.tracker.record(
+            rule_name="pipeline",
+            target="zotero_live_citation",
+            section="references",
+            change_type="repair" if report.changed else "check",
+            before=f"citations={report.citations}",
+            after=f"Zotero 活动引用：{report.summary()}",
+            paragraph_index=-1,
+            success=True,
+            failure_reason=None,
+        )
 
     def _record_docx_semantics(self, doc_path: str | None, *, target: str) -> None:
         """Run read-only semantic diagnostics on a saved DOCX and log the result."""
