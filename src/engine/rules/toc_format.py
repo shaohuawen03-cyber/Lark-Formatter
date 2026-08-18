@@ -1485,6 +1485,7 @@ class TocFormatRule(BaseRule):
             )
             native_seed_entries.sort(key=lambda e: e.get("para_index", 10**9))
             native_seed_entries = _dedupe_entries(native_seed_entries)
+            _attach_entry_bookmarks(doc, native_seed_entries)
 
             ps = config.page_setup
             page_w_twips = 11906  # A4 宽度

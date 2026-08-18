@@ -27,7 +27,7 @@ _RE_REFERENCE_ENTRY_PREFIX = re.compile(
     r"^\s*(?:\[\d{1,4}\]|[\uff08(]\d{1,4}[\uff09)]|\d{1,4}\.)\s*"
 )
 _RE_REFERENCE_TYPE_MARKER = re.compile(
-    r"\[(?:J|M|D|C|R|P|S|N|Z|A|CP|EB/OL|DB/OL|OL)\]",
+    r"\[(?:J|M|D|C|R|P|S|N|Z|A|CP|EB/OL|DB/OL|C/OL|M/OL|J/OL|R/OL|D/OL|G/OL|N/OL|S/OL|P/OL|OL)\]",
     re.IGNORECASE,
 )
 _RE_REFERENCE_YEAR = re.compile(r"(?<!\d)(?:19|20)\d{2}(?!\d)")

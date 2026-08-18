@@ -859,7 +859,7 @@
   "caption": {
     "enabled": true,
     "auto_insert": true,
-    "format_inserted": false,
+    "format_inserted": true,
     "figure_prefix": "图",
     "table_prefix": "表",
     "separator": "　",

@@ -133,6 +133,8 @@ def _normalize_doubled_backslashes(text: str) -> str:
     return value
 
 
+_MATH_SINGLE_VARS = frozenset({"x", "y", "z", "t", "u", "v", "w", "a", "b", "c", "k", "n", "m", "i", "j", "r", "s", "p", "q", "0", "1", "2", "3", "4", "5", "6", "7", "8", "9"})
+
 def _latexify_plain_function_names(text: str) -> str:
     """Convert plain-text function names to LaTeX commands.
 
@@ -144,13 +146,15 @@ def _latexify_plain_function_names(text: str) -> str:
     value = str(text or "")
     for fn in _FUNC_NAMES:
         # Match word-boundary function name NOT preceded by backslash
-        # Group 1 captures an optional directly-following letter (e.g. sinx)
-        _pat = re.compile(r"(?<!\\)\b" + fn + r"(?=[\s({[^_]|([A-Za-z])|$)")
+        # Group 1 captures an optional directly-following single variable letter (e.g. sinx)
+        _pat = re.compile(r"(?<!\\)\b" + fn + r"(?=[\s({[^_]|$|([A-Za-z0-9])\b)")
         def _repl(m, _fn=fn):
-            if m.group(1):
-                # Letter follows directly: sinx → \sin x
-                return "\\" + _fn + " "
-            return "\\" + _fn
+            if m.group(1) and m.group(1).lower() in _MATH_SINGLE_VARS:
+                # Single variable letter follows directly: sinx → \sin x
+                return "\\" + _fn + " " + m.group(1)
+            elif not m.group(1):
+                return "\\" + _fn
+            return m.group(0)
         value = _pat.sub(_repl, value)
     return value
 
